@@ -33,6 +33,8 @@ jobs:
       - run: RASH_BROWSER=webkit npm run test:motion
       - run: npm run test:camera
       - run: RASH_BROWSER=webkit npm run test:camera
+      - run: npm run test:masks
+      - run: RASH_BROWSER=webkit npm run test:masks
       - run: npm run test:rollback
       - run: npm run test:embed-game
       - run: node tests/exports-browser.mjs

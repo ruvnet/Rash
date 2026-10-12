@@ -1,0 +1,118 @@
+{
+  "measuredAt": "2026-10-12T22:47:19.800Z",
+  "command": "node scripts/benchmark-mask.mjs",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "release": "6.18.44",
+    "arch": "x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "cpuCount": 9,
+    "browser": "141.0.7390.37",
+    "headless": true,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "method": {
+    "warmupFrames": 12,
+    "measuredFrames": 60,
+    "order": [
+      "disabled",
+      "enabled",
+      "enabled",
+      "disabled"
+    ],
+    "baseline": "Identical nodes and mask key evaluation, with maskType none; isolates incremental clip definition and attribute updates.",
+    "renderMs": "Synchronous evaluation and SVG DOM update; excludes paint.",
+    "frameIntervalMs": "requestAnimationFrame cadence, not physical screen presentation.",
+    "limitations": "Headless shared host. Excludes editor panels, user input, mobile hardware and encoding. No timing CI threshold."
+  },
+  "sourceHashes": {
+    "web/core/model.js": "2e184ef0bfd0c711cb43d36c8a961d4077896b94ef1d4e5bd309e8983490d800",
+    "web/core/renderer.js": "e20763a7c183547394bc4caca14be822888920e0be1d9b467d87cc029ea32202",
+    "web/export/svg.js": "f7939d7e8248d564c2ca1269edd1dff9115963a59d357c0b7723a16096882c7f",
+    "web/core/three-svg.js": "b46a8caed46a0029f15e20716361c31e23aa82f11727caeba182b36c1c2c27b1",
+    "web/vendor/three-vector.js": "872a2955a4df0d57c09adefc9249cbd7e9acc179b51df2cf46d9f0a96b396f48",
+    "scripts/benchmark-mask.mjs": "1091feaa99ecef5d7c9b92502bda08787e041e538cb56a7ec1689901ad35caf3"
+  },
+  "results": [
+    {
+      "type": "rect",
+      "count": 200,
+      "baseline": {
+        "renderMs": {
+          "median": 0.7,
+          "p95": 1
+        },
+        "frameIntervalMs": {
+          "median": 16.7,
+          "p95": 16.7
+        },
+        "samples": 120
+      },
+      "masked": {
+        "renderMs": {
+          "median": 1.6,
+          "p95": 2.1
+        },
+        "frameIntervalMs": {
+          "median": 16.7,
+          "p95": 16.7
+        },
+        "samples": 120
+      },
+      "medianRenderDeltaMs": 0.9
+    },
+    {
+      "type": "mesh",
+      "count": 32,
+      "baseline": {
+        "renderMs": {
+          "median": 0.6,
+          "p95": 1.2
+        },
+        "frameIntervalMs": {
+          "median": 16.7,
+          "p95": 16.7
+        },
+        "samples": 120
+      },
+      "masked": {
+        "renderMs": {
+          "median": 0.8,
+          "p95": 1
+        },
+        "frameIntervalMs": {
+          "median": 16.7,
+          "p95": 16.7
+        },
+        "samples": 120
+      },
+      "medianRenderDeltaMs": 0.2
+    }
+  ],
+  "retentionChecks": [
+    "definition and primitive identity",
+    "content identity",
+    "shared evaluated geometry",
+    "noninteractive selection outline",
+    "renderer namespace isolation",
+    "shape change",
+    "disable cleanup",
+    "delete cleanup",
+    "static mesh geometry retained"
+  ],
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+  "exports": {
+    "maskedSVG": {
+      "bytes": 6079,
+      "gzipBytes": 1693
+    },
+    "baselineSVG": {
+      "bytes": 745,
+      "gzipBytes": 332
+    }
+  }
+}
