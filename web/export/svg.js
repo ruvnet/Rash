@@ -1,5 +1,5 @@
 import { validateProject, evaluateNode, evaluateCamera, ANIMATED_PROPERTIES, CAMERA_PROPERTIES, MESH_TRIANGLES } from '../core/model.js';
-import { sceneToSVG, nodeAttributes, textMarkup, effectMarkup, effectFilter, groupStyle } from '../core/renderer.js';
+import { sceneToSVG, nodeAttributes, textMarkup, effectMarkup, effectFilter, groupStyle, maskId, maskReference, maskAttributes } from '../core/renderer.js';
 import { meshPaths } from '../core/three-svg.js';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
 const num = n => Math.round(n * 1000) / 1000;
@@ -10,7 +10,7 @@ export function animatedSVG(input) {
   const cameraMoves=p.camera.keyframes.some(key=>CAMERA_PROPERTIES.some(property=>Number.isFinite(key[property])));
   const hasMeshes=p.nodes.some(n=>n.type==='mesh');
   const geometryMoves=n=>n.type==='mesh'&&(cameraMoves||n.keyframes.some(key=>['width','height','rotationX','rotationY','z'].some(property=>Object.hasOwn(key,property))));
-  const staticBytes = p.nodes.reduce((sum, n) => sum + (n.text?.length || 0) * 6 + (n.text?.split('\n').length || 0) * 40 + (n.d?.length || 0) + (n.type==='mesh'?MESH_TRIANGLES[n.primitive]*320:0) + 1000, 0);
+  const staticBytes = p.nodes.reduce((sum, n) => sum + (n.text?.length || 0) * 6 + (n.text?.split('\n').length || 0) * 40 + (n.d?.length || 0) + (n.type==='mesh'?MESH_TRIANGLES[n.primitive]*320:0) + (maskReference(n)?500:0) + 1000, 0);
   if (staticBytes > 16_000_000) throw new Error('SVG scene exceeds the 16 MB output budget. Reduce scene complexity.');
   if (!p.nodes.some(n => n.keyframes.length)&&!(cameraMoves&&hasMeshes)) return sceneToSVG(p, 0);
   const moving = p.nodes.filter(n => n.keyframes.length||geometryMoves(n)).length;
@@ -20,7 +20,10 @@ export function animatedSVG(input) {
   if (work > 5_000_000) throw new Error('SVG animation exceeds the evaluation budget. Reduce keyframes or shorten the timeline.');
   const triangleFrames=p.nodes.reduce((sum,n)=>sum+(geometryMoves(n)?MESH_TRIANGLES[n.primitive]*p.duration:0),0);
   if(triangleFrames>200_000)throw new Error('3D SVG animation exceeds the 200,000 triangle-frame export budget. Shorten the timeline or use fewer 3D layers.');
-  const estimatedBytes = staticBytes + moving * (p.duration + 1) * 256 + triangleFrames*320;
+  // Each animated clip adds four geometry tracks plus a three-number rotation
+  // track. Budget their values and repeated keyTimes before allocating samples.
+  const movingMasks=p.nodes.filter(n=>n.keyframes.length&&maskReference(n)).length;
+  const estimatedBytes = staticBytes + (moving+movingMasks) * (p.duration + 1) * 256 + triangleFrames*320;
   if (estimatedBytes > 16_000_000) throw new Error('SVG animation exceeds the 16 MB output budget. Reduce timeline or scene complexity.');
   // Camera poses are sampled only after all allocation budgets pass, once per
   // frame for the whole scene. Every mesh consumes the same plain pose object.
@@ -57,6 +60,18 @@ export function animatedSVG(input) {
         .replace(/<feGaussianBlur([^>]*)\/>/,(_,attributes)=>`<feGaussianBlur${attributes.replace(/stdDeviation="[^"]*"/,`stdDeviation="${num(initial.blur)}"`)}>${animate(samples.map(n=>String(num(n.blur))),'stdDeviation')}</feGaussianBlur>`)
         .replace(/<feDropShadow([^>]*)\/>/,(_,attributes)=>`<feDropShadow${attributes.replace(/stdDeviation="[^"]*"/,`stdDeviation="${num(initial.glow)}"`).replace(/flood-opacity="[^"]*"/,`flood-opacity="${initial.glow>0?1:0}"`)}>${animate(samples.map(n=>String(num(n.glow))),'stdDeviation')}${animate(samples.map(n=>n.glow>0?'1':'0'),'flood-opacity')}</feDropShadow>`);
       body=`<g filter="${filter}">${body}</g>`;
+    }
+    const clip=maskReference(node,'rash-export');
+    if(clip){
+      const maskShape=node.maskType==='ellipse'?'ellipse':'rect';
+      const geometries=samples.map(maskAttributes),initialGeometry=geometries[0];
+      const animations=Object.keys(initialGeometry).map(attribute=>attribute==='transform'
+        ?animate(geometries.map(geometry=>geometry.transform.slice(7,-1)),'transform','rotate')
+        :animate(geometries.map(geometry=>String(geometry[attribute])),attribute)).join('');
+      effects+=`<clipPath${attrs({id:maskId(node.id,'rash-export'),clipPathUnits:'userSpaceOnUse'})}><${maskShape}${attrs(initialGeometry)}>${animations}</${maskShape}></clipPath>`;
+      // This wrapper sits outside the effect group, so the finished effect is
+      // clipped in layer coordinates, before the layer transform is applied.
+      body=`<g clip-path="${esc(clip)}">${body}</g>`;
     }
     const wraps = [
       ['translate', n => `${num(n.x)} ${num(n.y)}`],

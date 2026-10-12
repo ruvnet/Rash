@@ -3,7 +3,9 @@ export const MAX_TEXT_LINES_PER_NODE=256,MAX_TEXT_LINES=10000;
 export const MAX_MESHES=32,MAX_MESH_TRIANGLES=4096;
 export const MAX_EFFECT_LAYERS=64,MAX_EFFECT_AREA=16_000_000,MAX_SCENE_EFFECT_AREA=32_000_000;
 export const MESH_TRIANGLES=Object.freeze({box:12,sphere:168,torus:192,pyramid:6});
-export const ANIMATED_PROPERTIES=Object.freeze(['x','y','width','height','rotation','opacity','scale','rotationX','rotationY','z','blur','glow']);
+export const MASK_TYPES=Object.freeze(['none','rect','ellipse']);
+export const MASK_PROPERTIES=Object.freeze(['maskX','maskY','maskWidth','maskHeight','maskRotation']);
+export const ANIMATED_PROPERTIES=Object.freeze(['x','y','width','height','rotation','opacity','scale','rotationX','rotationY','z','blur','glow',...MASK_PROPERTIES]);
 export const CAMERA_PROPERTIES=Object.freeze(['yaw','pitch','distance','fov']);
 export const MAX_CAMERA_KEYFRAMES=1000,MAX_TIMING_OVERRIDES=20000;
 export const EASINGS=Object.freeze(['linear','easeIn','easeOut','easeInOut','step','bezier','bounce','elastic']);
@@ -19,6 +21,7 @@ export const presets = [
 ];
 export const templates = [
  {id:'dimension',name:'Beyond / 3D motion',description:'Rotating Three.js geometry, depth, soft glow and expressive motion typography.',tags:['3d','motion','cinematic']},
+ {id:'mask',name:'Mask reveal',description:'Editable vector wipes and iris reveals for text, shapes and 3D layers.',tags:['mask','reveal','motion']},
  {id:'orbit',name:'Orbital / Product story',description:'Cinematic vector rings, kinetic typography and an orbital motion study.',tags:['technology','product','motion']},
  {id:'launch',name:'Make some noise',description:'Bold launch title, geometric shapes and bright expressive motion.',tags:['social','launch','brand']},
  {id:'social',name:'Social signal',description:'A portrait story for your next big idea. Ready for reels and stories.',tags:['social','story','portrait']},
@@ -32,7 +35,7 @@ const finite=(v,fallback=0,min=-100000,max=100000)=>typeof v==='number' && Numbe
 const str=(v,fallback='',max=1000)=>typeof v==='string'?v.slice(0,max):fallback;
 export const safeColor=(v,fallback='#ffffff')=>typeof v==='string' && /^(#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})|none|transparent|black|white|red|green|blue|yellow|cyan|magenta|orange|purple|gray|grey)$/i.test(v)?v:fallback;
 const easings=new Set(EASINGS);
-const propertyBounds={opacity:[0,1],scale:[0.001,100],width:[1,10000],height:[1,10000],z:[-300,300],blur:[0,30],glow:[0,30]};
+const propertyBounds={opacity:[0,1],scale:[0.001,100],width:[1,10000],height:[1,10000],z:[-300,300],blur:[0,30],glow:[0,30],maskWidth:[0,10000],maskHeight:[0,10000]};
 const cameraBounds={yaw:[-180,180],pitch:[-180,180],distance:[500,2000],fov:[20,90]};
 const boundedProperty=(value,property,fallback=0)=>finite(value,fallback,...(propertyBounds[property]||[-100000,100000]));
 const boundedCameraProperty=(value,property,fallback=DEFAULT_CAMERA[property])=>finite(value,fallback,...cameraBounds[property]);
@@ -136,6 +139,8 @@ export function normalizeNode(n,i=0){
  text:str(n.text,'Text',5000),fontSize:finite(n.fontSize,48,1,1000),fontWeight:finite(n.fontWeight,600,100,900),
  visible:n.visible!==false,locked:n.locked===true,rx:finite(n.rx,0,0,1000),
  d:str(n.d,'',50000).replace(/[^MmLlHhVvCcSsQqTtAaZz0-9., eE+\-]/g,''),keyframes:[]};
+ node.maskType=MASK_TYPES.includes(n.maskType)?n.maskType:'none';
+ for(const property of MASK_PROPERTIES)node[property]=boundedProperty(n[property],property,property==='maskWidth'?node.width:property==='maskHeight'?node.height:0);
  if(type==='text'&&node.text.split('\n').length>MAX_TEXT_LINES_PER_NODE)throw new Error(`A text layer supports at most ${MAX_TEXT_LINES_PER_NODE} lines`);
  // Preserve source path geometry so editing W/H also scales actual vector output.
  if(type==='path'){node.pathWidth=finite(n.pathWidth,node.width,1,10000);node.pathHeight=finite(n.pathHeight,node.height,1,10000);}
@@ -245,6 +250,44 @@ export function addKeyframe(p,id,frame){
  let k=n.keyframes.find(k=>k.frame===f);if(!k){k={frame:f,easing:'easeInOut'};n.keyframes.push(k);n.keyframes.sort((a,b)=>a.frame-b.frame);}
  for(const prop of ANIMATED_PROPERTIES)k[prop]=current[prop];return k;
 }
+function maskCandidate(project,id){
+ const candidate=cloneProject(project),index=candidate.nodes.findIndex(node=>node.id===id);
+ if(index<0)throw new Error('The selected layer no longer exists');
+ const node=candidate.nodes[index];
+ if(node.locked)throw new Error(`Unlock ${node.name} before editing its mask`);
+ return {candidate,node,index};
+}
+/** Fit only the mask tracks, with validation before publishing any mutation. */
+export function fitNodeMask(project,id,frame=0){
+ if(!Number.isFinite(frame)||Math.round(frame)<0||Math.round(frame)>=project.duration)throw new Error('Mask frame must be within the composition timeline');
+ const {candidate,node,index}=maskCandidate(project,id);frame=Math.round(frame);
+ const current=evaluateNode(node,frame);
+ if(!Number.isFinite(current.width)||!Number.isFinite(current.height)||current.width<0||current.height<0||current.width>10000||current.height>10000)throw new Error('A fitted mask must fit within the 10,000 pixel size limit');
+ const values={maskX:0,maskY:0,maskWidth:current.width,maskHeight:current.height,maskRotation:0};
+ node.maskType=node.maskType==='ellipse'?'ellipse':'rect';
+ let key=node.keyframes.find(key=>key.frame===frame);
+ if(frame===0){Object.assign(node,values);if(key)Object.assign(key,values);}
+ else{
+  if(!key){if(node.keyframes.length>=1000)throw new Error('A fitted mask would exceed the 1,000 keyframe layer limit');key={frame,easing:'easeInOut'};node.keyframes.push(key);node.keyframes.sort((a,b)=>a.frame-b.frame);}
+  Object.assign(key,values);
+ }
+ if(node.keyframes.length>1000)throw new Error('A layer supports at most 1,000 keyframes');
+ const validated=validateProject(candidate);
+ project.nodes[index]=validated.nodes[index];return project.nodes[index];
+}
+/** Disabling a mask removes only its animation and leaves other timing intact. */
+export function removeNodeMask(project,id){
+ const {candidate,node,index}=maskCandidate(project,id);
+ node.maskType='none';
+ for(const key of node.keyframes){
+  for(const property of MASK_PROPERTIES){delete key[property];if(key.curves)delete key.curves[property];}
+  if(key.curves&&!Object.keys(key.curves).length)delete key.curves;
+ }
+ node.keyframes=node.keyframes.filter(key=>ANIMATED_PROPERTIES.some(property=>Number.isFinite(key[property])));
+ if(node.keyframes.length>1000)throw new Error('A layer supports at most 1,000 keyframes');
+ const validated=validateProject(candidate);
+ project.nodes[index]=validated.nodes[index];return project.nodes[index];
+}
 export function createProject(template='orbit',preset='web'){
  const size=presets.find(p=>p.id===preset)||presets[0];
  const p={version:1,...size,id:uid(),name:templates.find(t=>t.id===template)?.name.split(' / ')[0]||'Untitled',fps:30,duration:240,background:'#111522',camera:{...DEFAULT_CAMERA,keyframes:[]},nodes:[],script:'// RashScript: a bounded ActionScript-inspired runtime\ntrace("Hello, Rash.");\n'};
@@ -266,6 +309,20 @@ export function createProject(template='orbit',preset='web'){
   text('Description','Give your next idea a new perspective.',80,453,22,'#acb7c3');
   text('Edition','REAL GEOMETRY. INFINITE EXPRESSION.',80,617,13,'#bfc8d0');
   text('Format','THREE.JS  /  SVG  /  MOTION',889,617,12,'#7defd2');
+ } else if(template==='mask'){
+  p.background='#111925';
+  text('Eyebrow','R A S H   /   THE ART OF REVEAL',76,64,15,'#99b3b3');
+  const title=node('Wipe / headline','text',76,207,720,125,{text:'A little mystery.',fontSize:78*s,fontWeight:700,fill:'#f4f2ec',maskType:'rect'});
+  title.keyframes=[{frame:0,maskWidth:0},{frame:75,maskWidth:title.width,easing:'bezier',bezier:[.16,1,.3,1]}];
+  const underline=node('Wipe / accent','rect',82,352,580,9,{fill:'#7defd2',maskType:'rect',rx:4});
+  underline.keyframes=[{frame:0,maskWidth:0},{frame:25,maskWidth:0},{frame:95,maskWidth:underline.width,easing:'easeInOut'}];
+  const orb=node('Iris / geometry','mesh',840,178,270,270,{primitive:'torus',fill:'#b7a1ff',rotationX:26,rotationY:-25,maskType:'ellipse'});
+  const mw=orb.width*Math.SQRT2,mh=orb.height*Math.SQRT2;
+  orb.keyframes=[{frame:0,maskX:orb.width/2,maskY:orb.height/2,maskWidth:0,maskHeight:0},{frame:20,maskX:orb.width/2,maskY:orb.height/2,maskWidth:0,maskHeight:0},{frame:110,maskX:(orb.width-mw)/2,maskY:(orb.height-mh)/2,maskWidth:mw,maskHeight:mh,easing:'easeOut'}];
+  text('Description','Build anticipation. Reveal something remarkable.',82,426,20,'#a6b5c4');
+  node('Footer rule','rect',76,604,1128,1,{fill:'#34444e'});
+  text('Edition','GEOMETRIC MASKS. EDITABLE AT EVERY FRAME.',76,636,13,'#a6b5c4');
+  text('Format','WIPE  /  IRIS  /  SVG',946,636,12,'#7defd2');
  } else if(template==='orbit'){
   text('Eyebrow','R A S H  /  MOTION STUDY 001',76,62,15,'#939ba9');
   for(let i=0;i<6;i++)node(`Orbital ring ${i+1}`,'ellipse',666+i*25,92+i*24,480-i*50,480-i*48,{fill:'none',stroke:i===0?'#535966':'#39404f',strokeWidth:1.2,rotation:-28+i*8});

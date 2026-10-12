@@ -6,10 +6,12 @@ export const motionPresets = Object.freeze([
   {id:'pop',name:'Pop',description:'Scale through a small overshoot and settle.'},
   {id:'spin3d',name:'3D revolution',description:'A full rotation around the vertical axis.',meshOnly:true},
   {id:'float',name:'Float',description:'A gentle looping rise and fall.'},
-  {id:'blurReveal',name:'Focus reveal',description:'Resolve from a soft blur into sharp detail.'}
+  {id:'blurReveal',name:'Focus reveal',description:'Resolve from a soft blur into sharp detail.'},
+  {id:'wipeReveal',name:'Wipe reveal',description:'Reveal the layer through an animated rectangle.'},
+  {id:'irisReveal',name:'Iris reveal',description:'Open a centered ellipse to reveal the layer.'}
 ]);
 
-function sequenceFor(node, preset) {
+function sequenceFor(node, preset, endNode=node) {
   const opacity=node.opacity,scale=node.scale;
   switch(preset) {
     case 'fadeIn':return [{at:0,opacity:0},{at:1,opacity,easing:'easeOut'}];
@@ -18,6 +20,14 @@ function sequenceFor(node, preset) {
     case 'spin3d':return [{at:0,rotationY:node.rotationY},{at:1,rotationY:node.rotationY+360,easing:'linear'}];
     case 'float':return [{at:0,y:node.y},{at:.5,y:node.y-Math.max(12,Math.min(45,node.height*.15)),easing:'easeInOut'},{at:1,y:node.y,easing:'easeInOut'}];
     case 'blurReveal':return [{at:0,blur:Math.max(18,node.blur),opacity:0},{at:1,blur:node.blur,opacity,easing:'easeOut'}];
+    case 'wipeReveal':
+    case 'irisReveal':{
+      const factor=preset==='irisReveal'?Math.SQRT2:1;
+      const width=endNode.width*factor,height=endNode.height*factor;
+      if(!Number.isFinite(width)||!Number.isFinite(height)||width<0||height<0||width>10000||height>10000)throw new Error('This reveal needs a mask larger than the 10,000 pixel size limit. Reduce the layer dimensions.');
+      if(preset==='wipeReveal')return [{at:0,maskX:0,maskY:0,maskWidth:0,maskHeight:node.height,maskRotation:0},{at:1,maskX:0,maskY:0,maskWidth:width,maskHeight:height,maskRotation:0,easing:'easeOut'}];
+      return [{at:0,maskX:node.width/2,maskY:node.height/2,maskWidth:0,maskHeight:0,maskRotation:0},{at:1,maskX:(endNode.width-width)/2,maskY:(endNode.height-height)/2,maskWidth:width,maskHeight:height,maskRotation:0,easing:'easeOut'}];
+    }
   }
 }
 
@@ -44,7 +54,8 @@ export function applyMotionPreset(project, ids, preset, {startFrame=0,durationFr
     const start=Math.round(startFrame+index*stagger),end=start+Math.round(durationFrames);
     if(end>=candidate.duration)throw new Error('Motion exceeds the timeline. Shorten the preset or extend the composition duration.');
     if(end<=start)throw new Error('Leave at least two frames for a motion preset');
-    const sequence=sequenceFor(evaluateNode(node,start),preset);
+    const sequence=sequenceFor(evaluateNode(node,start),preset,evaluateNode(node,end));
+    if(preset==='wipeReveal'||preset==='irisReveal')node.maskType=preset==='wipeReveal'?'rect':'ellipse';
     const properties=Object.keys(sequence[0]).filter(key=>ANIMATED_PROPERTIES.includes(key));
     for(const key of node.keyframes)if(key.frame>=start&&key.frame<=end)for(const property of properties){delete key[property];if(key.curves)delete key.curves[property];}
     node.keyframes=node.keyframes.filter(key=>ANIMATED_PROPERTIES.some(property=>Number.isFinite(key[property])));

@@ -8,6 +8,7 @@ Rash processes user-authored project files and script source locally. Treat all 
 | --- | --- | --- |
 | Project JSON | Version and field normalization, bounded node counts, unique IDs, import size limit | Keep schema validation at every import and embed boundary |
 | SVG scene | Allowlisted node kinds and attributes, escaped serialized text, textContent for live text | Do not add arbitrary HTML, event handlers, external URLs or raw imported SVG |
+| Geometric masks | Allowlisted rect/ellipse, bounded numeric tracks, renderer scoped clip IDs | Clipping never relaxes filter bounds; no remote references, raw paths or new script commands |
 | RashScript | Rust parser, explicit calls/properties, no JavaScript eval fallback | Extend features through explicit capabilities and regression tests |
 | Runtime worker | Dedicated worker, bounded request queue and wall clock termination | Handle initialization and runtime failures visibly; dispose workers when leaving a player |
 | Rust interpreter | 64 KiB source, 32,768 tokens, 50,000 operations, depth 96, 4,096 output items, bounded strings | WASM memory still consumes process resources; budgets do not prove absence of every DoS |

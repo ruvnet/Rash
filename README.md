@@ -8,7 +8,7 @@
 
 Rash is an open source SVG animation studio with a Rust/WebAssembly scripting runtime, a visual timeline, and portable JavaScript embeds. It brings the stage, layers, tools, properties and frame based workflow of classic Flash into a responsive browser editor.
 
-**Status: experimental v0.3.0.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
+**Status: experimental v0.4.0.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
 
 ## Create and publish
 
@@ -21,8 +21,8 @@ Rash is an open source SVG animation studio with a Rust/WebAssembly scripting ru
 | Capability | Implementation |
 | :--- | :--- |
 | Authoring | SVG stage, 2D vectors and Three.js box/sphere/torus/pyramid layers, inspector, layers, history, zoom |
-| Animation | Editable motion presets, stagger, per property Bezier curves, animated cameras, bounce/elastic easing, 3D rotation, blur, glow, blend modes |
-| Templates | Beyond 3D motion, orbital product story, launch, social story, kinetic typography, collector game, blank |
+| Animation | Editable motion presets, stagger, per property Bezier curves, animated cameras, bounce/elastic easing, 3D rotation, animated rectangle/ellipse masks, blur, glow, blend modes |
+| Templates | Mask reveal, Beyond 3D motion, orbital product story, launch, social story, kinetic typography, collector game, blank |
 | Native scripts | Rust parser/interpreter in a dedicated worker; typed variables, arithmetic, conditions, loops, trace, scene properties, timeline controls |
 | Legacy content | Isolated, optional self hosted Ruffle SWF player; no universal compatibility claim |
 | Search | Lazy loaded real RuVector WASM, deterministic lexical feature vectors, explicit JavaScript fallback |
@@ -39,7 +39,13 @@ Open **3D** to add a box, sphere, torus or pyramid. Use **Scene camera** to adju
 
 Start with the **Beyond / 3D motion** template for an animated composition. On phones, **More → 3D objects and camera** provides the same controls. Three.js geometry is projected into SVG; editor, embeds and exports share that renderer. The pinned Three.js module adds 25.3 KB gzip.
 
-These are motion design tools inspired by After Effects, with no AEP import, expressions, masks, nested compositions or shared depth buffer between objects. Animated 3D SVG samples geometry and can be large: the eight second Beyond template exports approximately 3.45 MB. Limits are 32 mesh layers, 4,096 source triangles and 16 MB per SVG export. [Design and limits](docs/adr/006-three-svg-motion.md) · [Camera and timing design](docs/adr/007-camera-and-property-timing.md) · [Release verification](docs/release-0.3.0.md).
+These are motion design tools inspired by After Effects, with no AEP import, expressions, feathered masks, nested compositions or shared depth buffer between objects. Animated 3D SVG samples geometry and can be large: the eight second Beyond template exports approximately 3.45 MB. Limits are 32 mesh layers, 4,096 source triangles and 16 MB per SVG export. [Design and limits](docs/adr/006-three-svg-motion.md) · [Camera and timing design](docs/adr/007-camera-and-property-timing.md) · [Release verification](docs/release-0.4.0.md).
+
+### Reveal masks
+
+Select any text, vector or 3D layer and open **Properties → Reveal mask**. Choose Rectangle or Ellipse, then edit local position, dimensions and rotation. Numeric mask values animate at the current frame. **Animate mask** opens Wipe reveal; Iris reveal is also available. The **Mask reveal** template demonstrates both effects. Set independent mask easing in **Motion**.
+
+**Fit mask to layer** resets the mask to the evaluated layer bounds at the current frame. **Remove mask**, or choosing None, clears mask tracks in one undoable edit and preserves other animation. A zero size mask hides content completely; select that layer from **Layers** to edit it again. Masks use hard clipping with no feathering, inversion or layer references. Stage, embeds, PNG and animated SVG share the evaluated geometry. Older players ignore masks and show unclipped content.
 
 ### Edit on a phone
 
@@ -77,6 +83,8 @@ npm run test:motion
 RASH_BROWSER=webkit npm run test:motion
 npm run test:camera
 RASH_BROWSER=webkit npm run test:camera
+npm run test:masks
+RASH_BROWSER=webkit npm run test:masks
 npm run test:rollback
 npm run test:embed-game
 node tests/exports-browser.mjs
