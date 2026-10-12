@@ -1,0 +1,21 @@
+{
+  "generator": "node scripts/generate-header.mjs",
+  "width": 1200,
+  "height": 720,
+  "seconds": 20,
+  "chapters": [
+    "DESIGN",
+    "CHOREOGRAPH",
+    "DIRECT IN 3D",
+    "PUBLISH"
+  ],
+  "svgBytes": 111469,
+  "gzipBytes": 18550,
+  "sha256": "129feff3eaeadb2bc86aa283f248fbc5b3737cc4aba9c1ab6774145f54d5a908",
+  "posterBytes": 29418,
+  "sourceHashes": {
+    "scripts/generate-header.mjs": "fd4bcb98e0e5ab8be0f92a1f89de8cb0062a8069662af41534d4121d2e11a9ba",
+    "web/core/three-svg.js": "b46a8caed46a0029f15e20716361c31e23aa82f11727caeba182b36c1c2c27b1",
+    "web/vendor/three-vector.js": "872a2955a4df0d57c09adefc9249cbd7e9acc179b51df2cf46d9f0a96b396f48"
+  }
+}

@@ -26,9 +26,13 @@ jobs:
       - run: npm test
       - run: npm run examples:generate
       - run: git diff --exit-code -- web/examples
+      - run: npm run header:generate
+      - run: git diff --exit-code -- web/header
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:examples
       - run: RASH_BROWSER=webkit npm run test:examples
+      - run: npm run test:header
+      - run: RASH_BROWSER=webkit npm run test:header
       - run: npm run test:ui
       - run: npm run test:mobile
       - run: npm run test:workflows

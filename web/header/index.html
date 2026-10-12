@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="An animated SVG tour of Rash: design, motion, projected 3D and portable publishing. Play, pause or explore each chapter.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'self'; base-uri 'none'">
+<title>Ideas in motion · Rash</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#edf2ee;background:#080e16;color-scheme:dark}*{box-sizing:border-box}body{margin:0}main,header,footer{max-width:1280px;margin:auto;padding:22px 28px}header{display:flex;justify-content:space-between;align-items:center}a{color:#9bf3d0;text-underline-offset:4px}.brand{font-size:28px;font-weight:800;text-decoration:none;color:#edf2ee}.brand span{color:#ff7954}.stage{border-radius:22px;overflow:hidden;background:#10151e}object{display:block;width:100%;aspect-ratio:5/3}nav,.controls{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}button,.download{border:1px solid #34404d;background:#141f2b;color:#edf2ee;padding:12px 18px;border-radius:7px;font:inherit;cursor:pointer;text-decoration:none;min-height:44px}button:disabled{opacity:.45;cursor:wait}button[aria-pressed=true]{color:#9bf3d0;border-color:#9bf3d0}.primary{background:#9bf3d0;color:#071a14;border-color:#9bf3d0}button:focus-visible,a:focus-visible{outline:3px solid #ff7954;outline-offset:4px}h1{font-size:clamp(30px,5vw,52px);letter-spacing:-1.5px;margin:35px 0 10px}p{color:#a8b8c5;line-height:1.65;max-width:860px}ol{display:grid;grid-template-columns:repeat(4,1fr);gap:25px;padding:0;list-style:none;counter-reset:chapter}li{counter-increment:chapter;border-top:1px solid #34404d;padding-top:20px}li:before{content:'0' counter(chapter);font:12px monospace;color:#ff7954}li h2{font-size:20px;margin:10px 0}li p{font-size:14px}.note{font-size:13px}footer{border-top:1px solid #34404d;font-size:13px;padding-bottom:40px}#status{min-height:24px;font-size:14px;margin:10px 0}nav button{font-size:14px}@media(max-width:650px){main,header,footer{padding:18px}header a{font-size:14px}header .brand{font-size:27px}ol{grid-template-columns:1fr 1fr;gap:18px}.stage{border-radius:10px}button,.download{padding:12px 14px}h1{margin-top:25px}}
+</style>
+</head>
+<body>
+<header><a class="brand" href="../">rash<span>.</span></a><a href="https://github.com/ruvnet/Rash">View source ↗</a></header>
+<main>
+<div class="stage"><object id="film" data="rash-header.svg" type="image/svg+xml" aria-label="Rash capability explainer"><a href="rash-header.poster.svg">View the static header</a></object></div>
+<div class="controls"><button class="primary" id="toggle" disabled>Pause animation</button><button id="restart" disabled>Restart</button><a class="download" href="rash-header.svg" download>Download SVG</a><a class="download" href="rash-header.poster.svg" download>Static poster</a></div>
+<nav aria-label="Explainer chapters"><button data-time="1" disabled>01 Design</button><button data-time="6" disabled>02 Choreograph</button><button data-time="11" disabled>03 Direct in 3D</button><button data-time="16" disabled>04 Publish</button></nav>
+<p id="status" role="status">Loading the explainer…</p>
+<h1>One idea. An open canvas.</h1>
+<p>Draw it, give it character, add another dimension, then take it to the web. This twenty second SVG explains the tools already available in Rash. Nothing is rendered as a video, and the SVG makes no external requests.</p>
+<ol>
+<li><h2>Design</h2><p>Editable vectors, text, layers, history, local autosave and templates. Web, social and print sizes. Touch editing on phones and a complete desktop workspace.</p></li>
+<li><h2>Choreograph</h2><p>Keyframes, independent Bezier curves, motion presets and stagger. Rectangle and ellipse reveal masks, blur, glow and blend modes.</p></li>
+<li><h2>Direct in 3D</h2><p>Three.js box, sphere, torus and pyramid geometry projected into SVG. Animate object depth, rotations and a shared perspective camera.</p></li>
+<li><h2>Publish</h2><p>Animated SVG, GIF, PNG, HTML, project JSON and raster PDF stills. MP4 in supporting browsers. Responsive JavaScript embeds with their own controls.</p></li>
+</ol>
+<p>Under the stage: bounded Rust/WASM scripting in a Web Worker, RuVector template search, local <code>rash://</code> resources, Claude authoring and verification skills, MetaHarness evidence tooling, a collector game demo, and optional isolated Ruffle playback for existing SWFs.</p>
+<div class="controls"><a class="download primary" href="../">Open Rash Studio ↗</a><a class="download" href="../examples/">Explore six editable studies</a></div>
+<p class="note">This is a bespoke editorial SVG using Rash’s production geometry projection. It is not an editable Rash project or an unmodified editor export. The six motion studies include editable projects and real system exports. Rash remains experimental: native scripting is a subset, SWF compatibility depends on Ruffle, and 3D objects follow layer order without a shared depth buffer. <a href="https://github.com/ruvnet/Rash/blob/main/docs/compatibility.md">Capability limits</a>.</p>
+</main>
+<footer>Script free SVG artwork. System fonts. Reduced motion supported. <a href="https://github.com/ruvnet/Rash/blob/main/scripts/generate-header.mjs">Reproduce the header</a>.</footer>
+<script type="module" src="preview.js"></script>
+</body></html>

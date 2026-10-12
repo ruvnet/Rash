@@ -23,7 +23,9 @@
     "test:camera": "node tests/camera-browser.mjs",
     "test:masks": "node tests/masks-browser.mjs",
     "examples:generate": "node scripts/generate-examples.mjs",
-    "test:examples": "node tests/examples-browser.mjs"
+    "test:examples": "node tests/examples-browser.mjs",
+    "header:generate": "node scripts/generate-header.mjs",
+    "test:header": "node tests/header-browser.mjs"
   },
   "engines": {
     "node": ">=22"
