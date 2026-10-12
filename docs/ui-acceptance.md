@@ -88,3 +88,7 @@ Run `npm test`, `cargo test --locked`, `npm run test:ui`, `npm run test:mobile`,
 The core mobile acceptance sequence is: create a blank composition, add and select text, edit it, change geometry and color, duplicate, lock and attempt edits, unlock, delete, undo and redo, add and remove a keyframe, save and reopen a project, and export through visible controls. No hardware keyboard, direct calls into application action handlers, or injected DOM events may substitute for the relevant gestures. Reading diagnostics for assertions is acceptable.
 
 Full ActionScript, AVM compatibility, FLA editing, arbitrary SVG and media import, nested timelines, Stage3D, a general game engine, audio and video composition, and collaborative cloud persistence remain separate implementation work. Their absence must not be described as completed end to end functionality. Track the broader scope in [issue 2](https://github.com/ruvnet/Rash/issues/2) and the [compatibility matrix](compatibility.md).
+
+## v0.2.0 follow-up
+
+Three.js object layers, motion presets, easing curves and effects have a separate [release acceptance record](release-0.2.0.md). The v0.1.1 results above remain historical evidence for the mobile baseline.

@@ -1,4 +1,4 @@
-import { validateProject, parseProject } from './core/model.js';
+import { validateProject, parseProject, ANIMATED_PROPERTIES } from './core/model.js';
 import { renderScene } from './core/renderer.js';
 import { createGame } from './core/game.js';
 const NS = 'http://www.w3.org/2000/svg';
@@ -103,9 +103,9 @@ export class RashPlayer extends HTMLElement {
         for (const command of result.commands || []) {
           if (command.type === 'set' || command.kind === 'set') {
             const node = p.nodes.find(n => n.id === command.id);
-            if (node && ['x', 'y', 'rotation', 'opacity', 'scale', 'width', 'height', 'fontSize', 'strokeWidth'].includes(command.property) && Number.isFinite(command.value)) node[command.property] = command.value;
-            else if (node && ['fill', 'stroke', 'text'].includes(command.property) && typeof command.value === 'string') node[command.property] = command.value;
-            else if (node && command.property === 'visible' && typeof command.value === 'boolean') node.visible = command.value;
+            if (node && [...ANIMATED_PROPERTIES, 'fontSize', 'strokeWidth'].includes(command.property) && Number.isFinite(command.value)) node[command.property] = command.value;
+            else if (node && ['fill', 'stroke', 'text', 'primitive', 'blendMode'].includes(command.property) && typeof command.value === 'string') node[command.property] = command.value;
+            else if (node && ['visible', 'wireframe'].includes(command.property) && typeof command.value === 'boolean') node[command.property] = command.value;
           } else if (command.type === 'stop' || command.kind === 'stop') requestedPlay = false;
           else if (command.type === 'play' || command.kind === 'play') requestedPlay = true;
           else if (command.type === 'goto' || command.kind === 'goto') { requestedFrame=command.frame; requestedPlay = command.play; }

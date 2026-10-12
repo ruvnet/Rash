@@ -17,6 +17,8 @@ assert.match(run('while(true) {}', context).error, /budget/);
 assert.match(run('eval("alert(1)");', context).error, /Unsupported/);
 assert.deepEqual(run('hero.x=99; fetch("https://example.com");', context).commands, []);
 assert.match(run('class Clip {}', context).error, /Unsupported/);
+const motion=run('hero.rotationX=30;hero.rotationY+=90;hero.glow=6;hero.primitive="torus";hero.wireframe=true;',context);
+assert.equal(motion.error,undefined);assert.equal(motion.commands.length,5);assert.equal(motion.commands[1].value,90);
 const times = [];
 for (let i = 0; i < 120; i++) {
   const start = performance.now();
