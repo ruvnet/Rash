@@ -1,5 +1,6 @@
 import { validateProject, parseProject } from './core/model.js';
 import { renderScene } from './core/renderer.js';
+import { createGame } from './core/game.js';
 const NS = 'http://www.w3.org/2000/svg';
 const MAX_BYTES = 5_000_000;
 export function validateSourceURL(source, base = globalThis.location?.href) {
@@ -22,6 +23,18 @@ export class RashPlayer extends HTMLElement {
     this.slider = this.shadowRoot.querySelector('input');
     this.status = this.shadowRoot.querySelector('.status');
     this.output = this.shadowRoot.querySelector('output');
+    this.restart = document.createElement('button'); this.restart.type='button'; this.restart.textContent='Restart'; this.restart.setAttribute('aria-label','Restart game'); this.restart.hidden=true;
+    this.shadowRoot.querySelector('.controls').append(this.restart);
+    this.restart.onclick=()=>{this.pause();this._resetGame();this.play();};
+    this._gameInput={};
+    const direction={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',d:'right',w:'up',s:'down'};
+    this.svg.addEventListener('keydown',event=>{const key=direction[event.key];if(!this._isGame()||!key)return;event.preventDefault();this._gameInput[key]=true;delete this._gameInput.target;this.play();});
+    this.svg.addEventListener('keyup',event=>{if(direction[event.key])this._gameInput[direction[event.key]]=false;});
+    this.svg.addEventListener('blur',()=>{this._gameInput={};});
+    const target=event=>{const matrix=this.svg.getScreenCTM();if(!matrix)return;const point=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix.inverse());this._gameInput.target={x:point.x,y:point.y};};
+    this.svg.addEventListener('pointerdown',event=>{if(!this._isGame()||event.button!==0)return;event.preventDefault();this.svg.focus();target(event);this.svg.setPointerCapture(event.pointerId);this.play();});
+    this.svg.addEventListener('pointermove',event=>{if(this.playing&&this._isGame()&&(event.buttons||event.pointerType==='touch'))target(event);});
+    this.svg.addEventListener('pointercancel',()=>{this._gameInput={};});
     this.button.onclick = () => this.playing ? this.pause() : this.play();
     this.slider.addEventListener('input', () => { this.pause(); this.seek(Number(this.slider.value)); });
     this._frame = 0; this.playing = false; this._request = 0; this._generation = 0;
@@ -39,8 +52,10 @@ export class RashPlayer extends HTMLElement {
   get project() { return this._project ? structuredClone(this._project) : null; }
   set project(value) {
     this.pause(); this._generation++; this._runtime?.dispose(); this._runtime = null;
-    this._project = validateProject(value); this._frame = 0;
-    this.svg.setAttribute('aria-label', this._project.name);
+    this._project = validateProject(value); this._frame = 0; this._game=null; this._gameScene=null; this._gameInput={};
+    this.svg.setAttribute('aria-label', this._project.name+(this._isGame()?'. Use arrow keys or touch to move.':''));
+    this.svg.setAttribute('tabindex',this._isGame()?'0':'-1'); this.svg.style.touchAction=this._isGame()?'none':'manipulation';
+    this.restart.hidden=!this._isGame(); this.slider.hidden=this._isGame();
     this.slider.max = String(this._project.duration - 1);
     this.status.textContent = '';
     this._render();
@@ -72,7 +87,7 @@ export class RashPlayer extends HTMLElement {
     } catch (error) { if (error.name !== 'AbortError') this._error(error); }
   }
   async _start(generation) {
-    let requestedPlay;
+    let requestedPlay,requestedFrame=this._frame;
     if (this._project.script.trim()) {
       try {
         const { createRuntime } = await import('./runtime/client.js');
@@ -81,7 +96,7 @@ export class RashPlayer extends HTMLElement {
         const runtime = await createRuntime();
         if (generation !== this._generation || !this.isConnected) { runtime.dispose(); return; }
         this._runtime = runtime;
-        const p = this._project;
+        const p = structuredClone(this._project);
         const result = await this._runtime.run(p.script, { frame: this._frame, fps: p.fps, width: p.width, height: p.height, nodes: p.nodes });
         if (generation !== this._generation) return;
         if (result.error) throw new Error(result.error);
@@ -93,11 +108,11 @@ export class RashPlayer extends HTMLElement {
             else if (node && command.property === 'visible' && typeof command.value === 'boolean') node.visible = command.value;
           } else if (command.type === 'stop' || command.kind === 'stop') requestedPlay = false;
           else if (command.type === 'play' || command.kind === 'play') requestedPlay = true;
-          else if (command.type === 'goto' || command.kind === 'goto') { this.seek(command.frame); requestedPlay = command.play; }
+          else if (command.type === 'goto' || command.kind === 'goto') { requestedFrame=command.frame; requestedPlay = command.play; }
         }
-        this._project = validateProject(p); this._render();
+        this._project = validateProject(p); this.seek(requestedFrame); this._render();
         this.dispatchEvent(new CustomEvent('rash-script', { detail: { logs: result.logs || [] } }));
-      } catch (error) { this.status.textContent = `Script: ${error.message}`; this.dispatchEvent(new CustomEvent('rash-warning', { detail: { message: error.message } })); }
+      } catch (error) { requestedPlay=false;this.status.textContent = `Script: ${error.message}`; this.dispatchEvent(new CustomEvent('rash-warning', { detail: { message: error.message } })); }
     }
     if (generation !== this._generation || !this.isConnected) return;
     const reduce = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -106,19 +121,24 @@ export class RashPlayer extends HTMLElement {
   _error(error) { this.pause(); this.status.textContent = error.message; this.dispatchEvent(new CustomEvent('rash-error', { detail: { message: error.message } })); }
   _render() {
     if (!this._project) return;
-    renderScene(this.svg, this._project, this._frame);
+    renderScene(this.svg, this._gameScene||this._project, this._frame);
     this.slider.value = String(this._frame);
     this.output.textContent = `${(this._frame / this._project.fps).toFixed(1)} s`;
   }
   get currentFrame() { return this._frame; }
+  _isGame(){return this._project?.nodes.some(n=>n.name==='player')&&this._project.nodes.some(n=>n.name.startsWith('energy-'));}
+  _resetGame(){this._game=null;this._gameScene=null;this._gameInput={};this._frame=0;this._render();}
   seek(frame) { if (!this._project) return; this._frame = Math.max(0, Math.min(this._project.duration - 1, Math.round(Number(frame) || 0))); this._started = performance.now() - this._frame / this._project.fps * 1000; this._render(); }
   play() {
     if (!this._project || this.playing) return;
+    if(this._isGame()&&(!this._game||['won','lost'].includes(this._game.status))){this._gameScene=structuredClone(this._project);this._game=createGame(this._gameScene);}
     if (this._frame >= this._project.duration - 1) this._frame = 0;
     this.playing = true; this.button.textContent = 'Pause'; this.button.setAttribute('aria-label', 'Pause animation');
     this._started = performance.now() - this._frame / this._project.fps * 1000;
+    let previous=performance.now();
     const tick = time => {
       if (!this.playing || !this.isConnected) return;
+      if(this._game){const result=this._game.step((time-previous)/1000,this._gameInput);previous=time;this._frame=Math.floor((time-this._started)/1000*this._project.fps)%this._project.duration;this._render();if(result.status==='won'||result.status==='lost'){this.pause();this.dispatchEvent(new CustomEvent('rash-game-ended',{detail:result}));return;}this._request=requestAnimationFrame(tick);return;}
       let frame = Math.floor((time - this._started) / 1000 * this._project.fps);
       if (frame >= this._project.duration) {
         if (this.hasAttribute('loop')) { frame %= this._project.duration; this._started = time - frame / this._project.fps * 1000; }
@@ -129,6 +149,6 @@ export class RashPlayer extends HTMLElement {
     };
     this._request = requestAnimationFrame(tick);
   }
-  pause() { this.playing = false; cancelAnimationFrame(this._request); this.button.textContent = 'Play'; this.button.setAttribute('aria-label', 'Play animation'); }
+  pause() { this.playing = false; cancelAnimationFrame(this._request); this._gameInput={}; this.button.textContent = 'Play'; this.button.setAttribute('aria-label', 'Play animation'); }
 }
 if (!customElements.get('rash-player')) customElements.define('rash-player', RashPlayer);

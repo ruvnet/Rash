@@ -14,6 +14,16 @@ globalThis.customElements ??= { get() { return undefined; }, define() {} };
 const { validateSourceURL, RashPlayer } = await import('../web/embed.js');
 const base = 'https://studio.example/Rash/';
 
+test('multiline text cannot amplify a bounded project into millions of SVG elements',()=>{
+ const p=createProject('blank');
+ p.nodes=Array.from({length:400},(_,i)=>({id:`text${i}`,type:'text',text:'\n'.repeat(4900)}));
+ const payload=JSON.stringify(p);assert.ok(payload.length<5_000_000);
+ assert.throws(()=>parseProject(payload),/at most 256 lines/);
+ p.nodes=Array.from({length:40},(_,i)=>({id:`text${i}`,type:'text',text:'\n'.repeat(255)}));
+ assert.throws(()=>validateProject(p),/at most 10000 text lines/);
+ p.nodes=p.nodes.slice(0,39);assert.equal(validateProject(p).nodes.length,39);
+});
+
 test('scene schema rejects executable shapes, attributes and remote paint', () => {
   for (const type of ['script', 'foreignObject', 'image', 'use', 'a', 'animate', 'constructor', '__proto__']) {
     const node = normalizeNode({ id: 'payload', type, fill: 'url(https://invalid.example/pixel)', href: 'javascript:alert(1)', onload: 'alert(1)', style: 'filter:url(https://invalid.example)' });

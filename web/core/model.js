@@ -1,4 +1,5 @@
 export const MAX_NODES = 1000;
+export const MAX_TEXT_LINES_PER_NODE=256,MAX_TEXT_LINES=10000;
 export const presets = [
   {id:'web', name:'Web · 16:9',width:1280,height:720},
   {id:'square',name:'Social square · 1:1',width:1080,height:1080},
@@ -32,6 +33,9 @@ export function normalizeNode(n,i=0){
  text:str(n.text,'Text',5000),fontSize:finite(n.fontSize,48,1,1000),fontWeight:finite(n.fontWeight,600,100,900),
  visible:n.visible!==false,locked:n.locked===true,rx:finite(n.rx,0,0,1000),
  d:str(n.d,'',50000).replace(/[^MmLlHhVvCcSsQqTtAaZz0-9., eE+\-]/g,''),keyframes:[]};
+ if(type==='text'&&node.text.split('\n').length>MAX_TEXT_LINES_PER_NODE)throw new Error(`A text layer supports at most ${MAX_TEXT_LINES_PER_NODE} lines`);
+ // Preserve source path geometry so editing W/H also scales actual vector output.
+ if(type==='path'){node.pathWidth=finite(n.pathWidth,node.width,1,10000);node.pathHeight=finite(n.pathHeight,node.height,1,10000);}
  if(Array.isArray(n.keyframes))node.keyframes=n.keyframes.slice(0,1000).map(k=>{
   const f={frame:Math.round(finite(k.frame,0,0,36000)),easing:easings.has(k.easing)?k.easing:'easeInOut'};
   for(const p of ['x','y','width','height','rotation','opacity','scale'])if(k[p]!==undefined)f[p]=finite(k[p],node[p],p==='opacity'?0:p==='scale'?0.001:(p==='width'||p==='height')?1:-100000,p==='opacity'?1:p==='scale'?100:(p==='width'||p==='height')?10000:100000);
@@ -46,6 +50,7 @@ export function validateProject(p){
  if(p.nodes.reduce((sum,n)=>sum+(Array.isArray(n?.keyframes)?n.keyframes.length:0),0)>10000)throw new Error('A scene supports at most 10,000 keyframes');
  const out={version:1,id:str(p.id,uid(),100),name:str(p.name,'Untitled project',120),width:Math.round(finite(p.width,1280,16,4096)),height:Math.round(finite(p.height,720,16,4096)),fps:Math.round(finite(p.fps,30,1,120)),duration:Math.round(finite(p.duration,240,1,36000)),background:safeColor(p.background,'#111522'),nodes:p.nodes.map(normalizeNode),script:str(p.script,'',50000)};
  if(new Set(out.nodes.map(n=>n.id)).size!==out.nodes.length)throw new Error('Layer IDs must be unique');
+ if(out.nodes.reduce((sum,n)=>sum+(n.type==='text'?n.text.split('\n').length:0),0)>MAX_TEXT_LINES)throw new Error(`A scene supports at most ${MAX_TEXT_LINES} text lines`);
  return out;
 }
 export const cloneProject=p=>structuredClone(p);

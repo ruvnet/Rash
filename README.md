@@ -8,7 +8,7 @@
 
 Rash is an open source SVG animation studio with a Rust/WebAssembly scripting runtime, a visual timeline, and portable JavaScript embeds. It brings the stage, layers, tools, properties and frame based workflow of classic Flash into a responsive browser editor.
 
-**Status: experimental v0.1.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md).
+**Status: experimental v0.1.1.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
 
 ## Create and publish
 
@@ -33,6 +33,16 @@ Rash is an open source SVG animation studio with a Rust/WebAssembly scripting ru
 
 GIF is capped at 640 pixels and 120 sampled frames. MP4 is a real time browser recording, capped at 1920 pixels and 60 seconds; unsupported browsers report an explicit error. PDF exports frame zero as a raster image. These limits keep the static application bounded and honest.
 
+### Edit on a phone
+
+1. Tap an object on the canvas, or choose it from **Layers**.
+2. Use the visible **Edit**, **Duplicate**, or **Delete** actions above the canvas. Corner handles resize shapes; the inspector provides exact sizes and rotation.
+3. For text, choose **Edit**, then **Edit text content**. Multiline text is preserved in the SVG and exports.
+4. Use **Undo** and **Redo** above the canvas. **More** exposes saving, importing, exports, scripts, resources, and help without a keyboard.
+5. In **Motion**, enter an exact frame to add, edit, or remove a keyframe. Changing FPS preserves keyframe timing in seconds, subject to frame rounding.
+
+The browser keeps one current composition. Download project JSON before replacing it. Creating a new composition asks you to confirm replacement when there is existing work. The Orbit Collector demo supports touch and keyboard controls in the editor and JavaScript embed. Playback uses temporary game state and leaves the authored scene intact. This demo is not a general game engine.
+
 ## Run locally
 
 ```sh
@@ -50,8 +60,12 @@ rustup target add wasm32-unknown-unknown
 npm run build:wasm
 cargo test --locked
 npm test
-npx playwright install --with-deps chromium
+npx playwright install --with-deps chromium webkit
 npm run test:ui
+npm run test:mobile
+npm run test:workflows
+RASH_BROWSER=webkit npm run test:workflows
+npm run test:embed-game
 node tests/exports-browser.mjs
 node tests/runtime-browser.mjs
 npm run bench

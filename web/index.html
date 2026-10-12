@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-src 'self'" />
   <meta name="theme-color" content="#f4f3ef" />
   <meta name="description" content="Rash is an open source vector animation studio. Design on an SVG stage, animate with a timeline, and publish interactive work anywhere." />
@@ -38,10 +38,11 @@
       </div>
     </aside>
 
-    <aside class="left-panel panel" id="left-panel">
+    <button id="panel-backdrop" class="panel-backdrop" data-action="close-panels" aria-label="Close panels" hidden></button>
+    <aside class="left-panel panel" id="left-panel" aria-label="Layers and library">
       <div class="panel-tabs" role="tablist" aria-label="Project panels">
         <button class="active" role="tab" aria-selected="true" data-panel="layers">Layers</button>
-        <button role="tab" aria-selected="false" data-panel="library">Library</button>
+        <button role="tab" aria-selected="false" data-panel="library">Library</button><button class="mobile-close icon-button" data-action="close-panels" aria-label="Close layers">×</button>
       </div>
       <section id="layers-panel">
         <div class="panel-heading"><span class="scene-label">Scene 01</span><button class="icon-button" data-action="add-layer" aria-label="Add rectangle layer" title="Add layer"></button></div>
@@ -60,6 +61,11 @@
       <div class="workspace-toolbar">
         <div class="mode-tabs" aria-label="Workspace mode"><button class="active" data-action="design-mode">Design</button><button data-action="animate-mode">Animate</button><button data-action="script">Actions <span class="mini-tag">AS</span></button></div>
         <div class="workspace-options"><button id="grid-button" class="icon-button active" data-action="grid" title="Toggle stage grid" aria-label="Toggle stage grid" aria-pressed="true"></button><span class="toolbar-separator"></span><button class="zoom-button" data-action="zoom-out" aria-label="Zoom out">−</button><button id="zoom-label" class="zoom-label" data-action="zoom-fit" title="Fit stage">Fit</button><button class="zoom-button" data-action="zoom-in" aria-label="Zoom in">+</button></div>
+      </div>
+      <div class="selection-toolbar" id="selection-toolbar" aria-label="Selection actions">
+        <div class="history-actions"><button class="icon-button" data-action="undo" aria-label="Undo" title="Undo"></button><button class="icon-button" data-action="redo" aria-label="Redo" title="Redo"></button></div>
+        <span id="selection-hint">Tap an object to edit</span>
+        <div id="selection-actions" hidden><button data-action="edit-layer" aria-label="Edit selected layer">Edit</button><button data-action="duplicate" aria-label="Duplicate selected layer">Duplicate</button><button class="selection-delete" data-action="delete" aria-label="Delete selected layer">Delete</button></div>
       </div>
       <div id="stage-area" class="stage-area">
         <div class="stage-surround" id="stage-surround">
@@ -83,7 +89,7 @@
       <div class="timeline-body"><div class="track-labels"><div class="track-label-heading">OBJECT <span>◉ &nbsp; ◈</span></div><div id="timeline-labels"></div></div><div class="tracks-scroll" id="tracks-scroll"><svg id="timeline-svg" xmlns="http://www.w3.org/2000/svg" aria-label="Animation keyframes" role="img"></svg></div></div>
       <div class="timeline-footer"><span><span class="dot orange"></span> <span id="timeline-summary">1 scene</span></span><span>Made to move. Built to be open.</span><button class="text-link" data-action="help">Shortcuts <kbd>?</kbd></button></div>
     </section>
-    <nav class="mobile-nav" aria-label="Mobile panels"><button data-action="mobile-layers">Layers</button><button data-action="mobile-tools">Draw</button><button data-action="mobile-properties">Properties</button><button data-action="new-project">New</button></nav>
+    <nav class="mobile-nav" aria-label="Mobile panels"><button data-action="mobile-layers" aria-controls="left-panel" aria-expanded="false">Layers</button><button data-action="mobile-tools">Draw</button><button data-action="mobile-properties" aria-controls="right-panel" aria-expanded="false">Properties</button><button data-action="new-project">New</button><button data-action="mobile-more">More</button></nav>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="menu" class="floating-menu" hidden></div>
