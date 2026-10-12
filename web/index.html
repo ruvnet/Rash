@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-src 'self'" />
+  <meta name="theme-color" content="#f4f3ef" />
+  <meta name="description" content="Rash is an open source vector animation studio. Design on an SVG stage, animate with a timeline, and publish interactive work anywhere." />
+  <title>Rash Studio · Ideas in motion</title>
+  <link rel="icon" type="image/svg+xml" href="./ui/rash.svg" />
+  <link rel="stylesheet" href="./styles/studio.css" />
+</head>
+<body>
+  <div id="app" class="studio" aria-label="Rash animation studio">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Rash Studio home"><img src="./ui/rash.svg" alt="" /><span>rash<span class="brand-dot">.</span></span><small>STUDIO</small></a>
+      <nav class="main-menu" aria-label="Studio menu">
+        <button data-action="file-menu">File <span class="chevron">⌄</span></button>
+        <button data-action="edit-menu">Edit <span class="chevron">⌄</span></button>
+        <button data-action="view-menu">View <span class="chevron">⌄</span></button>
+        <button data-action="help">Help</button>
+      </nav>
+      <button id="project-title" class="project-title" data-action="rename-project" title="Rename project"><span class="project-name">Orbital identity</span><span class="chevron">⌄</span></button>
+      <div class="top-actions">
+        <span id="save-status" class="save-status"><i></i> Saved on this device</span>
+        <button class="icon-button command-button" data-action="commands" aria-label="Open command palette" title="Command palette (Ctrl+K)"></button>
+        <button class="button preview-button" data-action="preview"></button>
+        <button class="button export-button primary" data-action="export"></button>
+      </div>
+    </header>
+
+    <aside class="toolrail" aria-label="Drawing tools">
+      <div class="rail-top" id="drawing-tools"></div>
+      <div class="rail-bottom">
+        <button class="tool-button" data-action="script" aria-label="Actions script editor" title="Actions script editor"></button>
+        <button class="tool-button" data-action="help" aria-label="Help and keyboard shortcuts" title="Help and keyboard shortcuts"></button>
+        <a class="avatar" href="https://github.com/ruvnet/Rash" target="_blank" rel="noopener noreferrer" aria-label="Rash source code">R</a>
+      </div>
+    </aside>
+
+    <aside class="left-panel panel" id="left-panel">
+      <div class="panel-tabs" role="tablist" aria-label="Project panels">
+        <button class="active" role="tab" aria-selected="true" data-panel="layers">Layers</button>
+        <button role="tab" aria-selected="false" data-panel="library">Library</button>
+      </div>
+      <section id="layers-panel">
+        <div class="panel-heading"><span class="scene-label">Scene 01</span><button class="icon-button" data-action="add-layer" aria-label="Add rectangle layer" title="Add layer"></button></div>
+        <div id="layer-list" class="layer-list" aria-label="Scene layers"></div>
+        <div class="layer-footer"><button class="quiet-button" data-action="new-project">+ New composition</button></div>
+      </section>
+      <section id="library-panel" hidden>
+        <label class="library-search"><span aria-hidden="true">⌕</span><input id="library-search" type="search" placeholder="Find a shape or template" aria-label="Search library" /></label>
+        <div class="library-heading">QUICK SHAPES</div><div id="shape-library" class="shape-library"></div>
+        <div class="library-heading">START WITH A STORY</div><div id="template-library" class="template-library"></div>
+      </section>
+      <div class="project-card"><span class="eyebrow">THE OPEN CANVAS</span><strong>Small files.<br/>Boundless possibilities.</strong><p>Vector by nature. Interactive by design.</p><button data-action="templates" class="text-link">Explore templates <span>↗</span></button><svg viewBox="0 0 200 78" aria-hidden="true"><path d="M-8 74Q50-38 108 28T220 8M-8 86Q50-26 108 40T220 20M-8 98Q50-14 108 52T220 32" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
+    </aside>
+
+    <main class="workspace" id="workspace">
+      <div class="workspace-toolbar">
+        <div class="mode-tabs" aria-label="Workspace mode"><button class="active" data-action="design-mode">Design</button><button data-action="animate-mode">Animate</button><button data-action="script">Actions <span class="mini-tag">AS</span></button></div>
+        <div class="workspace-options"><button id="grid-button" class="icon-button active" data-action="grid" title="Toggle stage grid" aria-label="Toggle stage grid" aria-pressed="true"></button><span class="toolbar-separator"></span><button class="zoom-button" data-action="zoom-out" aria-label="Zoom out">−</button><button id="zoom-label" class="zoom-label" data-action="zoom-fit" title="Fit stage">Fit</button><button class="zoom-button" data-action="zoom-in" aria-label="Zoom in">+</button></div>
+      </div>
+      <div id="stage-area" class="stage-area">
+        <div class="stage-surround" id="stage-surround">
+          <div class="artboard-label"><span id="artboard-name">Orbital identity</span><span id="artboard-size">1280 × 720</span></div>
+          <div class="stage-board" id="stage-board"><svg id="stage" xmlns="http://www.w3.org/2000/svg" aria-label="Animation stage" role="img" tabindex="0"></svg><svg id="stage-overlay" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg></div>
+        </div>
+        <div class="stage-hint" id="stage-hint"><kbd>V</kbd> Select <span>·</span> <kbd>R</kbd> Rectangle <span>·</span> <kbd>Space</kbd> Play</div>
+        <div class="stage-caption"><span class="dot orange"></span> SVG NATIVE <span class="caption-separator">/</span> <span id="render-count">0 objects</span></div>
+      </div>
+      <div class="workspace-bottom"><span id="selection-status">Select an object to start creating</span><div><span class="engine-indicator"></span><span id="engine-status">Initializing runtime</span><span class="status-separator">·</span><span id="frame-status">Frame 1 of 180</span></div></div>
+    </main>
+
+    <aside class="right-panel panel" id="right-panel">
+      <div class="panel-tabs property-tabs" role="tablist" aria-label="Inspector panels"><button class="active" data-inspector="properties" role="tab" aria-selected="true">Properties</button><button data-inspector="motion" role="tab" aria-selected="false">Motion</button><button class="mobile-close icon-button" data-action="close-inspector" aria-label="Close inspector">×</button></div>
+      <div id="inspector" class="inspector"></div>
+      <div class="inspector-bottom"><span class="dot green"></span> Local first. Your work stays yours.<button class="text-link" data-action="project-info">Project details ↗</button></div>
+    </aside>
+
+    <section class="timeline" id="timeline" aria-label="Animation timeline">
+      <div class="timeline-header"><div class="timeline-title"><span id="timeline-icon"></span><strong>Timeline</strong><button id="loop-button" class="icon-button active" data-action="loop" aria-label="Toggle loop playback" aria-pressed="true" title="Loop playback"></button></div><div class="transport"><button class="icon-button" data-action="first-frame" aria-label="First frame" title="First frame"></button><button id="play-button" class="play-button" data-action="play" aria-label="Play animation" title="Play animation (Space)"></button><button class="icon-button" data-action="last-frame" aria-label="Last frame" title="Last frame"></button><output id="timecode">00:00:00</output><span class="transport-separator"></span><button class="quiet-button keyframe-button" data-action="add-keyframe" title="Add keyframe at playhead (K)"><span>◇</span> Keyframe</button></div><div class="timeline-settings"><label><select id="fps-select" aria-label="Frames per second"><option value="12">12 fps</option><option value="24">24 fps</option><option value="30">30 fps</option><option value="60">60 fps</option></select></label><button class="icon-button" data-action="timeline-size" title="Expand timeline" aria-label="Expand timeline"></button></div></div>
+      <div class="timeline-body"><div class="track-labels"><div class="track-label-heading">OBJECT <span>◉ &nbsp; ◈</span></div><div id="timeline-labels"></div></div><div class="tracks-scroll" id="tracks-scroll"><svg id="timeline-svg" xmlns="http://www.w3.org/2000/svg" aria-label="Animation keyframes" role="img"></svg></div></div>
+      <div class="timeline-footer"><span><span class="dot orange"></span> <span id="timeline-summary">1 scene</span></span><span>Made to move. Built to be open.</span><button class="text-link" data-action="help">Shortcuts <kbd>?</kbd></button></div>
+    </section>
+    <nav class="mobile-nav" aria-label="Mobile panels"><button data-action="mobile-layers">Layers</button><button data-action="mobile-tools">Draw</button><button data-action="mobile-properties">Properties</button><button data-action="new-project">New</button></nav>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="menu" class="floating-menu" hidden></div>
+  <dialog id="modal" class="modal"><div id="modal-content"></div></dialog>
+  <input id="project-import" type="file" accept=".json,.rash,application/json" hidden />
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

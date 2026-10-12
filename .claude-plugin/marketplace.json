@@ -1,0 +1,7 @@
+{
+  "name": "rash-tools",
+  "owner": { "name": "rUv" },
+  "plugins": [
+    { "name": "rash", "source": "./", "description": "SVG scene authoring and verification for Rash Studio", "version": "0.1.0" }
+  ]
+}

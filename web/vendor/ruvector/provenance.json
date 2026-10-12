@@ -1,0 +1,30 @@
+{
+  "package": "@ruvector/wasm",
+  "version": "0.2.1",
+  "source": "https://registry.npmjs.org/@ruvector/wasm/-/wasm-0.2.1.tgz",
+  "tarballIntegrity": "sha512-cZQUPI0zfc6ZOp7jeN8j/ZYE1k3eQgK1W4d4N4vgOU/na7E+kJJfxWsWB4Ia+Jr2xW6I/T2rJ8xsJwlLgr6JIg==",
+  "license": "MIT",
+  "licenseSource": "https://raw.githubusercontent.com/ruvnet/RuVector/main/LICENSE",
+  "files": {
+    "ruvector_wasm.js": {
+      "bytes": 56041,
+      "gzipBytes": 9273,
+      "sha256": "b04d1a6d8f3fc826bc2e92e9afdb1460d294e6dff57664889494f0103a0acf71"
+    },
+    "ruvector_wasm.d.ts": {
+      "bytes": 8259,
+      "gzipBytes": 2135,
+      "sha256": "1629d8d9d203b0b7f225ff94ea97b32ddf96eee147517fbc607ec84f973f5867"
+    },
+    "LICENSE": {
+      "bytes": 1060,
+      "gzipBytes": 642,
+      "sha256": "50fefb93560af4421369c99c93cc214cd835b3181ab7f16323f9e6f2ded870e3"
+    },
+    "ruvector_wasm_bg.wasm": {
+      "bytes": 303577,
+      "gzipBytes": 122221,
+      "sha256": "0f2479dd974a8eef6d667166d3f40fb1dbdd80f3dc95ffc7b5921d24cffd99d1"
+    }
+  }
+}

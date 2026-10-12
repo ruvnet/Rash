@@ -1,0 +1,16 @@
+{
+  "engine": "rash-runtime",
+  "version": "0.1.0",
+  "target": "wasm32-unknown-unknown",
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "artifactBytes": 222144,
+  "artifactSha256": "8e24972b7323e31f3887a50cf0e1111eef04140c6b5128ab62cfaeb3fe4343a7",
+  "sourceSha256": {
+    "Cargo.toml": "837068c20fbd7752851efe5c7e10fe8edf305281eb0249626689b24c12f2f8d8",
+    "Cargo.lock": "e061c5313e9a2b0871da9cd7fe1ea16adf66d08ab327cf013fb4233e36f632b5",
+    "crates/rash-runtime/Cargo.toml": "c51f1ba2d4127fde4e3bd13e5d7edd0f95f6d796d69e38908c92e86b312270d8",
+    "crates/rash-runtime/src/lib.rs": "c051389051d84f92c3b3adc6d5d3675de42c5162bf71123560f06321f629b076",
+    "scripts/build-wasm.sh": "39077c39fc87adc7bc5d2d3e20f042f02fd91b8917bc4872b022e2608a574463"
+  },
+  "command": "sh scripts/build-wasm.sh"
+}

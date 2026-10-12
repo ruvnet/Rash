@@ -1,0 +1,85 @@
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+const modulePath = process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES ? pathToFileURL(path.join(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES, 'playwright/index.mjs')).href : 'playwright';
+let playwright;
+try { playwright = await import('playwright'); } catch { playwright = await import(modulePath); }
+const { chromium } = playwright;
+const root = path.resolve('web');
+const types = { '.js': 'text/javascript', '.html': 'text/html', '.wasm': 'application/wasm', '.json': 'application/json', '.css':'text/css' };
+const server = http.createServer(async (request, response) => {
+  const url = new URL(request.url, 'http://localhost');
+  if (url.pathname === '/test.html') { response.writeHead(200, { 'Content-Type': 'text/html' }).end('<!doctype html><title>Export test</title>'); return; }
+  const file = path.resolve(root, '.' + decodeURIComponent(url.pathname));
+  if (!file.startsWith(root + path.sep)) { response.writeHead(400).end(); return; }
+  try { const data = await fs.readFile(file); response.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Access-Control-Allow-Origin': '*' }).end(data); }
+  catch { response.writeHead(404).end(); }
+});
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const base = `http://127.0.0.1:${server.address().port}`;
+const host = http.createServer((request,response) => response.writeHead(200, {'Content-Type':'text/html'}).end('<!doctype html><title>Third-party embed host</title>'));
+await new Promise(resolve => host.listen(0, '127.0.0.1', resolve));
+const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+try {
+  const page = await browser.newPage(); const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(`${base}/test.html`);
+  const result = await page.evaluate(async () => {
+    const { createProject } = await import('/core/model.js');
+    const { exportProject, mp4Support } = await import('/export/export.js');
+    await import('/embed.js');
+    const p = createProject('blank'); p.name = 'Export test'; p.width = 160; p.height = 96; p.fps = 10; p.duration = 5; p.script = '';
+    p.nodes = [{ id: 'ball', type: 'ellipse', name: 'Ball', x: 0, y: 16, width: 24, height: 24, fill: '#ff6800', stroke: 'none', strokeWidth: 0, rotation: 0, opacity: 1, scale:1, visible: true, keyframes: [{ frame:0,x:0,easing:'linear' }, {frame:4,x:120,easing:'linear'}] }];
+    const a = document.createElement('rash-player'), b = document.createElement('rash-player');
+    a.setAttribute('controls',''); b.setAttribute('controls',''); document.body.append(a,b); a.project = p; b.project = p;
+    a.seek(3); b.seek(1);
+    const independent = a.currentFrame === 3 && b.currentFrame === 1;
+    const node = a.shadowRoot.querySelector('[data-node-id="ball"]'); a.seek(2); const retained = node === a.shadowRoot.querySelector('[data-node-id="ball"]');
+    a.play(); await new Promise(r => setTimeout(r, 130)); a.pause(); const played = a.currentFrame > 2;
+    const exported = {};
+    for (const format of ['svg','gif','pdf','png','json','html']) {
+      const {blob,filename} = await exportProject(p,format);
+      exported[format] = {size:blob.size,type:blob.type,filename,bytes:Array.from(new Uint8Array(await blob.arrayBuffer()))};
+    }
+    const svgText = new TextDecoder().decode(Uint8Array.from(exported.svg.bytes));
+    const svgDocument = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+    const svgValid = !svgDocument.querySelector('parsererror');
+    let mp4;
+    if(mp4Support()) { const {blob} = await exportProject(p,'mp4'); mp4 = {size:blob.size,type:blob.type,bytes:Array.from(new Uint8Array(await blob.arrayBuffer()))}; }
+    else { try { await exportProject(p,'mp4'); } catch(e) { mp4 = {unsupported:e.message}; } }
+    return { independent, retained, played, exported, svgValid, mp4 };
+  });
+  assert.equal(result.independent,true); assert.equal(result.retained,true); assert.equal(result.played,true); assert.equal(result.svgValid,true);
+  const exportDir = '/tmp/rash-export-validation'; await fs.mkdir(exportDir,{recursive:true});
+  for(const [format,output] of Object.entries(result.exported)) { assert.ok(output.size > 20,format); await fs.writeFile(`${exportDir}/scene.${format}`, Uint8Array.from(output.bytes)); }
+  assert.equal(Buffer.from(result.exported.gif.bytes.slice(0,6)).toString(),'GIF89a');
+  assert.equal(Buffer.from(result.exported.pdf.bytes.slice(0,8)).toString(),'%PDF-1.4');
+  if(result.mp4.bytes) { await fs.writeFile(`${exportDir}/scene.mp4`,Uint8Array.from(result.mp4.bytes)); assert.ok(Buffer.from(result.mp4.bytes.slice(0,32)).toString().includes('ftyp')); }
+  else assert.match(result.mp4.unsupported,/MP4 recording is unavailable/);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  const reduced = await page.evaluate(async () => {
+    const { createProject } = await import('/core/model.js');
+    const p = createProject('blank'); p.script = '';
+    const player = document.createElement('rash-player'); player.setAttribute('autoplay',''); document.body.append(player); player.project = p;
+    await new Promise(r=>setTimeout(r,100)); return !player.playing;
+  });
+  assert.equal(reduced,true);
+  await page.goto(`http://127.0.0.1:${host.address().port}/`);
+  const crossOrigin = await page.evaluate(async origin => {
+    await import(`${origin}/embed.js`);
+    const { createProject } = await import(`${origin}/core/model.js`);
+    const p=createProject('blank');p.script='trace("embed-ready");';
+    const player=document.createElement('rash-player');document.body.append(player);
+    const result=new Promise(resolve=>{
+      player.addEventListener('rash-script',e=>resolve({ok:true,logs:e.detail.logs}),{once:true});
+      player.addEventListener('rash-warning',e=>resolve({ok:false,message:e.detail.message}),{once:true});
+      setTimeout(()=>resolve({ok:false,message:'script event timed out'}),18000);
+    });
+    player.project=p;return await result;
+  },base);
+  assert.equal(crossOrigin.ok,true,JSON.stringify(crossOrigin));
+  assert.equal(errors.length,0,errors.join('\n'));
+  console.log(JSON.stringify({checks:['independent players','retained SVG nodes','play/pause','reduced motion','SVG XML','GIF bytes','PDF bytes','PNG bytes','JSON','HTML','cross-origin WASM worker'],mp4:result.mp4.bytes?'verified':'unsupported with actionable error',artifacts:exportDir},null,2));
+} finally { await browser.close(); await new Promise(r=>server.close(r)); await new Promise(r=>host.close(r)); }

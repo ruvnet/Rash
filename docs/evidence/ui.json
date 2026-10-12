@@ -1,0 +1,32 @@
+{
+  "checks": [
+    "desktop editor and Rust worker boot",
+    "template and size wizard",
+    "pointer drawing creates SVG rectangle",
+    "inspector changes persisted scene",
+    "undo and redo",
+    "timeline scrubbing and keyframe authoring",
+    "animation playback advances frames",
+    "Rust script result in Actions UI",
+    "infinite script rejected without freezing editor",
+    "help dialog and keyboard close",
+    "rash resource resolution",
+    "portable embed dialog",
+    "SVG download through export UI",
+    "local autosave survives reload",
+    "untrusted project import remains inert",
+    "interactive game keyboard movement",
+    "template search through library UI",
+    "mobile viewport, drawers and touch tools",
+    "no uncaught desktop application errors"
+  ],
+  "desktop": {
+    "width": 1600,
+    "height": 1000
+  },
+  "mobile": {
+    "width": 390,
+    "height": 844
+  },
+  "url": "http://127.0.0.1:35391/"
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rash Author"
+  short_description: "Create SVG motion scenes for Rash Studio"
+  default_prompt: "Use $rash-author to create an interactive Rash scene with portable exports."
