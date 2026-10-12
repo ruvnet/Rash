@@ -1,0 +1,263 @@
+{
+  "measuredAt": "2026-10-12T21:51:48.849Z",
+  "command": "node scripts/benchmark-camera.mjs",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "release": "6.18.44",
+    "arch": "x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "cpuCount": 9,
+    "browser": "141.0.7390.37",
+    "headless": true,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "method": {
+    "warmupFrames": 20,
+    "measuredFramesPerRun": 120,
+    "order": [
+      "static",
+      "animated",
+      "animated",
+      "static"
+    ],
+    "renderMs": "Synchronous camera evaluation, Three.js projection, filter bounds, and retained SVG DOM updates. Excludes browser paint.",
+    "frameIntervalMs": "requestAnimationFrame cadence across updates, not physical display presentation.",
+    "cameraEvaluation": "Five warmed batches measuring camera evaluation separately from geometry and DOM.",
+    "limitations": "No timing CI threshold. Headless host load and changed projected faces can dominate small differences. A negative delta is not evidence that camera animation improves performance. Excludes editor UI, encoders, mobile hardware, and physical display latency."
+  },
+  "sourceHashes": {
+    "scripts/benchmark-camera.mjs": "01119e196404c6e04bc3c223bd5036f0a8c3ba03a035ea18bed63f83fd70bcb6",
+    "web/core/model.js": "1e4096b4bccdb87381778f45ca373b79b8e7b9fbd83f10cfd6efdf6bd09301c4",
+    "web/core/renderer.js": "b87565086368dd2cfcab578c02964b8f3d14bc47d887912c85690a3af14ace49",
+    "web/core/three-svg.js": "b46a8caed46a0029f15e20716361c31e23aa82f11727caeba182b36c1c2c27b1",
+    "web/vendor/three-vector.js": "872a2955a4df0d57c09adefc9249cbd7e9acc179b51df2cf46d9f0a96b396f48"
+  },
+  "results": [
+    {
+      "scene": "modest",
+      "meshes": 4,
+      "sourceTriangles": 408,
+      "effects": false,
+      "summary": {
+        "static": {
+          "renderMs": {
+            "median": 1.7,
+            "p95": 2.6
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 240
+        },
+        "animated": {
+          "renderMs": {
+            "median": 1.6,
+            "p95": 2.8
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 240
+        }
+      },
+      "incrementalRenderMedianMs": -0.1,
+      "runs": [
+        {
+          "run": 1,
+          "camera": "static",
+          "cameraKeys": 0,
+          "renderMs": {
+            "median": 1.7,
+            "p95": 2.7
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 120,
+          "visiblePaths": 200
+        },
+        {
+          "run": 2,
+          "camera": "animated",
+          "cameraKeys": 3,
+          "renderMs": {
+            "median": 1.6,
+            "p95": 2.6
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.8
+          },
+          "samples": 120,
+          "visiblePaths": 200
+        },
+        {
+          "run": 3,
+          "camera": "animated",
+          "cameraKeys": 3,
+          "renderMs": {
+            "median": 1.6,
+            "p95": 2.9
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 120,
+          "visiblePaths": 200
+        },
+        {
+          "run": 4,
+          "camera": "static",
+          "cameraKeys": 0,
+          "renderMs": {
+            "median": 1.6,
+            "p95": 2.3
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.8
+          },
+          "samples": 120,
+          "visiblePaths": 200
+        }
+      ]
+    },
+    {
+      "scene": "filteredDenseTrack",
+      "meshes": 8,
+      "sourceTriangles": 96,
+      "effects": true,
+      "summary": {
+        "static": {
+          "renderMs": {
+            "median": 0.5,
+            "p95": 0.8
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 240
+        },
+        "animated": {
+          "renderMs": {
+            "median": 2.6,
+            "p95": 4.8
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 240
+        }
+      },
+      "incrementalRenderMedianMs": 2.1,
+      "runs": [
+        {
+          "run": 1,
+          "camera": "static",
+          "cameraKeys": 0,
+          "renderMs": {
+            "median": 0.5,
+            "p95": 0.8
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 120,
+          "visiblePaths": 48
+        },
+        {
+          "run": 2,
+          "camera": "animated",
+          "cameraKeys": 1000,
+          "renderMs": {
+            "median": 2.7,
+            "p95": 4.8
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.8
+          },
+          "samples": 120,
+          "visiblePaths": 48
+        },
+        {
+          "run": 3,
+          "camera": "animated",
+          "cameraKeys": 1000,
+          "renderMs": {
+            "median": 2.6,
+            "p95": 5.4
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 120,
+          "visiblePaths": 48
+        },
+        {
+          "run": 4,
+          "camera": "static",
+          "cameraKeys": 0,
+          "renderMs": {
+            "median": 0.5,
+            "p95": 0.9
+          },
+          "frameIntervalMs": {
+            "median": 16.7,
+            "p95": 16.7
+          },
+          "samples": 120,
+          "visiblePaths": 48
+        }
+      ]
+    }
+  ],
+  "cameraEvaluation": [
+    {
+      "label": "static",
+      "keys": 0,
+      "iterationsPerBatch": 100000,
+      "batches": 5,
+      "microsecondsPerEvaluation": {
+        "median": 0.782,
+        "p95": 1.032
+      },
+      "checksum": 0
+    },
+    {
+      "label": "threeKeys",
+      "keys": 3,
+      "iterationsPerBatch": 100000,
+      "batches": 5,
+      "microsecondsPerEvaluation": {
+        "median": 1.297,
+        "p95": 1.355
+      },
+      "checksum": 8710827.288
+    },
+    {
+      "label": "thousandKeys",
+      "keys": 1000,
+      "iterationsPerBatch": 2000,
+      "batches": 5,
+      "microsecondsPerEvaluation": {
+        "median": 62.55,
+        "p95": 64.1
+      },
+      "checksum": 93845.986
+    }
+  ],
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36"
+}

@@ -4,6 +4,8 @@ export const MAX_MESHES=32,MAX_MESH_TRIANGLES=4096;
 export const MAX_EFFECT_LAYERS=64,MAX_EFFECT_AREA=16_000_000,MAX_SCENE_EFFECT_AREA=32_000_000;
 export const MESH_TRIANGLES=Object.freeze({box:12,sphere:168,torus:192,pyramid:6});
 export const ANIMATED_PROPERTIES=Object.freeze(['x','y','width','height','rotation','opacity','scale','rotationX','rotationY','z','blur','glow']);
+export const CAMERA_PROPERTIES=Object.freeze(['yaw','pitch','distance','fov']);
+export const MAX_CAMERA_KEYFRAMES=1000,MAX_TIMING_OVERRIDES=20000;
 export const EASINGS=Object.freeze(['linear','easeIn','easeOut','easeInOut','step','bezier','bounce','elastic']);
 export const DEFAULT_CAMERA=Object.freeze({yaw:0,pitch:0,distance:800,fov:45});
 export const presets = [
@@ -31,38 +33,93 @@ const str=(v,fallback='',max=1000)=>typeof v==='string'?v.slice(0,max):fallback;
 export const safeColor=(v,fallback='#ffffff')=>typeof v==='string' && /^(#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})|none|transparent|black|white|red|green|blue|yellow|cyan|magenta|orange|purple|gray|grey)$/i.test(v)?v:fallback;
 const easings=new Set(EASINGS);
 const propertyBounds={opacity:[0,1],scale:[0.001,100],width:[1,10000],height:[1,10000],z:[-300,300],blur:[0,30],glow:[0,30]};
+const cameraBounds={yaw:[-180,180],pitch:[-180,180],distance:[500,2000],fov:[20,90]};
 const boundedProperty=(value,property,fallback=0)=>finite(value,fallback,...(propertyBounds[property]||[-100000,100000]));
+const boundedCameraProperty=(value,property,fallback=DEFAULT_CAMERA[property])=>finite(value,fallback,...cameraBounds[property]);
 export function normalizeBezier(value){return Array.isArray(value)&&value.length===4?value.map((v,i)=>finite(v,i===0?.25:i===1?.1:i===2?.25:1,i%2?-2:0,i%2?3:1)):[.25,.1,.25,1];}
-export function normalizeCamera(camera={}){return {yaw:finite(camera?.yaw,0,-180,180),pitch:finite(camera?.pitch,0,-180,180),distance:finite(camera?.distance,800,500,2000),fov:finite(camera?.fov,45,20,90)};}
+function normalizeTiming(value){const timing={easing:easings.has(value?.easing)?value.easing:'easeInOut'};if(timing.easing==='bezier')timing.bezier=normalizeBezier(value?.bezier);return timing;}
+function timingSource(key,property){return property!=='all'&&key?.curves&&typeof key.curves==='object'&&!Array.isArray(key.curves)&&Object.hasOwn(key.curves,property)?key.curves[property]||key:key;}
+export function keyframeTiming(key,property='all'){
+ if(property!=='all'&&!ANIMATED_PROPERTIES.includes(property))throw new Error('Unknown animated property');
+ return normalizeTiming(timingSource(key,property));
+}
+export function setKeyframeTiming(key,property,timing){
+ if(!key||typeof key!=='object'||Array.isArray(key))throw new Error('Invalid keyframe');
+ if(property!=='all'&&!ANIMATED_PROPERTIES.includes(property))throw new Error('Unknown animated property');
+ const normalized=normalizeTiming(timing);
+ if(property==='all'){
+  key.easing=normalized.easing;if(normalized.bezier)key.bezier=normalized.bezier;else delete key.bezier;
+  delete key.curves;
+ }else{
+  if(!Number.isFinite(key[property]))throw new Error(`Author a ${property} keyframe before editing its timing`);
+  const curves={};
+  for(const prop of ANIMATED_PROPERTIES)if(key.curves&&Object.hasOwn(key.curves,prop))curves[prop]=normalizeTiming(key.curves[prop]);
+  curves[property]=normalized;key.curves=curves;
+ }
+ return key;
+}
+export function normalizeCamera(camera={}){
+ const out=Object.fromEntries(CAMERA_PROPERTIES.map(property=>[property,boundedCameraProperty(camera?.[property],property)]));
+ out.keyframes=[];
+ if(Array.isArray(camera?.keyframes)){
+  if(camera.keyframes.length>MAX_CAMERA_KEYFRAMES)throw new Error('A camera supports at most 1,000 keyframes');
+  out.keyframes=camera.keyframes.map(key=>{
+   if(!key||typeof key!=='object'||Array.isArray(key))throw new Error('Invalid camera keyframe');
+   const normalized={frame:Math.round(finite(key.frame,0,0,36000)),...normalizeTiming(key)};
+   for(const property of CAMERA_PROPERTIES)if(key[property]!==undefined)normalized[property]=boundedCameraProperty(key[property],property,out[property]);
+   return normalized;
+  }).sort((a,b)=>a.frame-b.frame).filter((key,index,keys)=>!index||keys[index-1].frame!==key.frame);
+ }
+ return out;
+}
 export const hasNodeEffects=n=>n.blur>0||n.glow>0||(n.keyframes||[]).some(k=>k.blur>0||k.glow>0);
 // Bound every possible interpolated value, including expressive easing overshoot.
 function trackRange(node,property){
  let low=node[property],high=low,previous=low;
+ const cameraProperty=CAMERA_PROPERTIES.includes(property),bound=cameraProperty?boundedCameraProperty:boundedProperty;
  for(const key of node.keyframes||[]){
-  if(!Number.isFinite(key[property]))continue;
+  if(key[property]===undefined)continue;
+  const timing=timingSource(key,cameraProperty?'all':property),next=bound(key[property],property,node[property]);
   let min=0,max=1;
-  if(key.easing==='bezier'){const curve=normalizeBezier(key.bezier);min=Math.min(0,curve[1],curve[3]);max=Math.max(1,curve[1],curve[3]);}
-  else if(key.easing==='elastic')max=1.4;
-  const values=[key[property],previous+(key[property]-previous)*min,previous+(key[property]-previous)*max].map(v=>boundedProperty(v,property,node[property]));
-  low=Math.min(low,...values);high=Math.max(high,...values);previous=key[property];
+  if(timing?.easing==='bezier'){const curve=normalizeBezier(timing.bezier);min=Math.min(0,curve[1],curve[3]);max=Math.max(1,curve[1],curve[3]);}
+  else if(timing?.easing==='elastic')max=1.4;
+  const lower=bound(previous+(next-previous)*min,property,node[property]),upper=bound(previous+(next-previous)*max,property,node[property]);
+  low=Math.min(low,next,lower,upper);high=Math.max(high,next,lower,upper);previous=next;
  }
  return [low,high];
 }
+// Read current camera values without cloning each key for every filtered layer.
+// This is deliberately uncached: edits to an existing camera object take effect.
+function cameraForBounds(input){
+ const camera=Object.fromEntries(CAMERA_PROPERTIES.map(property=>[property,boundedCameraProperty(input?.[property],property)]));
+ const keys=Array.isArray(input?.keyframes)?input.keyframes:[];
+ if(keys.length>MAX_CAMERA_KEYFRAMES)throw new Error('A camera supports at most 1,000 keyframes');
+ const frame=key=>Math.round(finite(key.frame,0,0,36000));
+ let ordered=true,previous=-1;
+ for(const key of keys){
+  if(!key||typeof key!=='object'||Array.isArray(key))throw new Error('Invalid camera keyframe');
+  const current=frame(key);if(current<=previous)ordered=false;previous=current;
+ }
+ camera.keyframes=ordered?keys:[...keys].sort((a,b)=>frame(a)-frame(b)).filter((key,index,sorted)=>!index||frame(sorted[index-1])!==frame(key));
+ return camera;
+}
 /** Conservative local filter bounds shared by live and portable renderers. */
 export function filterSceneBounds(node,cameraOptions){
- const camera=normalizeCamera(cameraOptions),padding=180;
+ const padding=180;
  const widthRange=trackRange(node,'width'),heightRange=trackRange(node,'height'),width=widthRange[1],height=heightRange[1];
  let minX=0,minY=0,maxX=width,maxY=height;
  if(node.type==='text'){
   const lines=String(node.text).split(/\r?\n/);
   maxX=Math.max(width,...lines.map(line=>line.length*node.fontSize*1.1));maxY=Math.max(height,lines.length*node.fontSize*1.2);
  }else if(node.type==='mesh'){
+  const camera=cameraForBounds(cameraOptions);
   const depth=Math.min(width,height),radius=['torus','sphere'].includes(node.primitive)?Math.max(width,height)/2:Math.hypot(width,height,depth)/2;
-  const zRange=trackRange(node,'z'),nearest=camera.distance-Math.max(...zRange.map(Math.abs))-radius;
+  const minDistance=trackRange(camera,'distance')[0],minFov=trackRange(camera,'fov')[0];
+  const zRange=trackRange(node,'z'),nearest=minDistance-Math.max(...zRange.map(Math.abs))-radius;
   if(nearest<=1)throw new Error('A filtered 3D layer intersects the camera safety region. Reduce its size or depth, move the camera back, or remove its effects.');
-  const projectedRadius=radius*800*Math.tan(Math.PI/8)/(Math.tan(camera.fov*Math.PI/360)*nearest);
+  const projectedRadius=radius*800*Math.tan(Math.PI/8)/(Math.tan(minFov*Math.PI/360)*nearest);
   // Camera orbit can shift a depth-offset object relative to the local center.
-  const offset=Math.max(...zRange.map(Math.abs))*800*Math.tan(Math.PI/8)/(Math.tan(camera.fov*Math.PI/360)*nearest);
+  const offset=Math.max(...zRange.map(Math.abs))*800*Math.tan(Math.PI/8)/(Math.tan(minFov*Math.PI/360)*nearest);
   minX=Math.min(0,widthRange[0]/2-projectedRadius-offset);minY=Math.min(0,heightRange[0]/2-projectedRadius-offset);
   maxX=Math.max(width,width/2+projectedRadius+offset);maxY=Math.max(height,height/2+projectedRadius+offset);
  }
@@ -88,6 +145,10 @@ export function normalizeNode(n,i=0){
   const f={frame:Math.round(finite(k.frame,0,0,36000)),easing:easings.has(k.easing)?k.easing:'easeInOut'};
   if(f.easing==='bezier')f.bezier=normalizeBezier(k.bezier);
   for(const p of ANIMATED_PROPERTIES)if(k[p]!==undefined)f[p]=boundedProperty(k[p],p,node[p]);
+  if(k.curves&&typeof k.curves==='object'&&!Array.isArray(k.curves)){
+   const curves={};for(const property of ANIMATED_PROPERTIES)if(Object.hasOwn(k.curves,property))curves[property]=normalizeTiming(k.curves[property]);
+   if(Object.keys(curves).length)f.curves=curves;
+  }
   return f;
  }).sort((a,b)=>a.frame-b.frame).filter((k,i,a)=>!i||a[i-1].frame!==k.frame);
  return node;
@@ -96,7 +157,12 @@ export function validateProject(p){
  if(!p||typeof p!=='object'||Array.isArray(p))throw new Error('Expected a Rash project');
  if(p.version!==1)throw new Error('Unsupported Rash project version');
  if(!Array.isArray(p.nodes)||p.nodes.length>MAX_NODES)throw new Error(`A scene supports at most ${MAX_NODES} layers`);
- if(p.nodes.reduce((sum,n)=>sum+(Array.isArray(n?.keyframes)?n.keyframes.length:0),0)>10000)throw new Error('A scene supports at most 10,000 keyframes');
+ if(p.nodes.reduce((sum,n)=>sum+(Array.isArray(n?.keyframes)?n.keyframes.length:0),Array.isArray(p.camera?.keyframes)?p.camera.keyframes.length:0)>10000)throw new Error('A scene supports at most 10,000 keyframes, including camera keys');
+ let overrideCount=0;
+ for(const node of p.nodes)for(const key of Array.isArray(node?.keyframes)?node.keyframes:[]){
+  if(!key?.curves||typeof key.curves!=='object'||Array.isArray(key.curves))continue;
+  for(const property of ANIMATED_PROPERTIES)if(Object.hasOwn(key.curves,property)&&++overrideCount>MAX_TIMING_OVERRIDES)throw new Error('A scene supports at most 20,000 property timing overrides');
+ }
  const out={version:1,id:str(p.id,uid(),100),name:str(p.name,'Untitled project',120),width:Math.round(finite(p.width,1280,16,4096)),height:Math.round(finite(p.height,720,16,4096)),fps:Math.round(finite(p.fps,30,1,120)),duration:Math.round(finite(p.duration,240,1,36000)),background:safeColor(p.background,'#111522'),camera:normalizeCamera(p.camera),nodes:p.nodes.map(normalizeNode),script:str(p.script,'',50000)};
  if(new Set(out.nodes.map(n=>n.id)).size!==out.nodes.length)throw new Error('Layer IDs must be unique');
  if(out.nodes.reduce((sum,n)=>sum+(n.type==='text'?n.text.split('\n').length:0),0)>MAX_TEXT_LINES)throw new Error(`A scene supports at most ${MAX_TEXT_LINES} text lines`);
@@ -134,13 +200,38 @@ export function evaluateNode(node,frame){
   const relevant=keys.filter(k=>Number.isFinite(k[prop]));if(!relevant.length)continue;
   let previous={frame:0,[prop]:node[prop]};
   for(const next of relevant){
-   if(frame<next.frame){const t=ease((frame-previous.frame)/(next.frame-previous.frame),next.easing,next.bezier);n[prop]=boundedProperty(previous[prop]+(next[prop]-previous[prop])*t,prop,node[prop]);break;}
+   if(frame<next.frame){const timing=timingSource(next,prop),t=ease((frame-previous.frame)/(next.frame-previous.frame),timing?.easing,timing?.bezier);n[prop]=boundedProperty(previous[prop]+(next[prop]-previous[prop])*t,prop,node[prop]);break;}
    previous=next;n[prop]=next[prop];
   }
  }
  return n;
 }
 export const evaluateScene=(p,frame)=>p.nodes.map(n=>evaluateNode(n,Math.max(0,Math.min(p.duration-1,Number(frame)||0))));
+export function evaluateCamera(camera,frame){
+ const pose=Object.fromEntries(CAMERA_PROPERTIES.map(property=>[property,boundedCameraProperty(camera?.[property],property)]));
+ const keys=Array.isArray(camera?.keyframes)?camera.keyframes:[];
+ frame=finite(frame,0,0,36000);
+ for(const property of CAMERA_PROPERTIES){
+  const relevant=keys.filter(key=>key&&Number.isFinite(key[property]));let previous={frame:0,[property]:pose[property]};
+  for(const next of relevant){
+   if(frame<next.frame){const t=ease((frame-previous.frame)/(next.frame-previous.frame),next.easing,next.bezier);pose[property]=boundedCameraProperty(previous[property]+(next[property]-previous[property])*t,property,pose[property]);break;}
+   previous=next;pose[property]=boundedCameraProperty(next[property],property,pose[property]);
+  }
+ }
+ return pose;
+}
+export function addCameraKeyframe(project,frame,values={},timing={easing:'easeInOut'}){
+ if(!Number.isFinite(frame)||Math.round(frame)<0||Math.round(frame)>=project.duration)throw new Error('Camera keyframe must be within the composition timeline');
+ if(!values||typeof values!=='object'||Array.isArray(values))throw new Error('Camera pose must be an object');
+ for(const property of Object.keys(values))if(!CAMERA_PROPERTIES.includes(property)||!Number.isFinite(values[property]))throw new Error('Camera poses accept finite yaw, pitch, distance and fov values only');
+ const candidate=cloneProject(project);candidate.camera=normalizeCamera(candidate.camera);frame=Math.round(frame);
+ let key=candidate.camera.keyframes.find(key=>key.frame===frame);
+ if(!key){if(candidate.camera.keyframes.length>=MAX_CAMERA_KEYFRAMES)throw new Error('A camera supports at most 1,000 keyframes');key={frame};candidate.camera.keyframes.push(key);candidate.camera.keyframes.sort((a,b)=>a.frame-b.frame);}
+ const pose=evaluateCamera(project.camera,frame);
+ Object.assign(key,pose,values,normalizeTiming(timing));if(key.easing!=='bezier')delete key.bezier;
+ const validated=validateProject(candidate);project.camera=validated.camera;
+ return project.camera.keyframes.find(key=>key.frame===frame);
+}
 export function addNode(p,type='rect'){
  if(p.nodes.length>=MAX_NODES)throw new Error('Layer limit reached');
  if(type==='mesh'&&p.nodes.filter(n=>n.type==='mesh').length>=MAX_MESHES)throw new Error('3D layer limit reached');
@@ -156,13 +247,14 @@ export function addKeyframe(p,id,frame){
 }
 export function createProject(template='orbit',preset='web'){
  const size=presets.find(p=>p.id===preset)||presets[0];
- const p={version:1,...size,id:uid(),name:templates.find(t=>t.id===template)?.name.split(' / ')[0]||'Untitled',fps:30,duration:240,background:'#111522',camera:{...DEFAULT_CAMERA},nodes:[],script:'// RashScript: a bounded ActionScript-inspired runtime\ntrace("Hello, Rash.");\n'};
+ const p={version:1,...size,id:uid(),name:templates.find(t=>t.id===template)?.name.split(' / ')[0]||'Untitled',fps:30,duration:240,background:'#111522',camera:{...DEFAULT_CAMERA,keyframes:[]},nodes:[],script:'// RashScript: a bounded ActionScript-inspired runtime\ntrace("Hello, Rash.");\n'};
  const W=p.width,H=p.height,s=Math.min(W/1280,H/720);
  const node=(name,type,x,y,w,h,extra={})=>{const n=normalizeNode({id:uid(),name,type,x:x*W/1280,y:y*H/720,width:w*W/1280,height:h*H/720,...extra});p.nodes.push(n);return n;};
  const text=(name,txt,x,y,size,color='#f3f1ec')=>node(name,'text',x,y,1000,100,{text:txt,fontSize:size*s,fill:color,fontWeight:700});
  if(template==='blank'){p.name='Untitled project';p.background='#f8f7f4';return p;}
  if(template==='dimension'){
   p.background='#10131e';
+  p.camera.keyframes=[{frame:0,yaw:-8,pitch:0,easing:'easeInOut'},{frame:120,yaw:8,pitch:4,easing:'easeInOut'},{frame:239,yaw:-8,pitch:0,easing:'easeInOut'}];
   text('Eyebrow','R A S H   /   BEYOND THE FLAT',76,62,15,'#98adae');
   node('Horizon','rect',76,583,1128,1,{fill:'#344044'});
   const ring=node('Orbital torus','mesh',742,118,400,400,{primitive:'torus',fill:'#7defd2',rotationX:28,rotationY:-28,glow:2});

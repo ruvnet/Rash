@@ -28,17 +28,23 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${base}/test.html`);
   const result = await page.evaluate(async origin => {
-    const { createProject, addNode } = await import(`${origin}/core/model.js`);
+    const { createProject, addNode, evaluateCamera } = await import(`${origin}/core/model.js`);
     const { exportProject, mp4Support } = await import(`${origin}/export/export.js`);
     await import(`${origin}/embed.js`);
     const p = createProject('blank'); p.name = 'Export test'; p.width = 160; p.height = 96; p.fps = 10; p.duration = 5; p.script = '';
     p.nodes = [{ id: 'ball', type: 'ellipse', name: 'Ball', x: 0, y: 16, width: 24, height: 24, fill: '#ff6800', stroke: 'none', strokeWidth: 0, rotation: 0, opacity: 1, scale:1, visible: true, keyframes: [{ frame:0,x:0,easing:'linear' }, {frame:4,x:120,easing:'linear'}] }];
     const mesh=addNode(p,'mesh');Object.assign(mesh,{x:70,y:20,width:45,height:45,primitive:'box',fill:'#00ff60',rotationX:22,rotationY:30,glow:1,keyframes:[{frame:0,rotationY:30,easing:'linear'},{frame:4,rotationY:160,easing:'linear'}]});
+    p.camera.keyframes=[{frame:0,yaw:-30,easing:'linear'},{frame:4,yaw:40,easing:'linear'}];
+    const staticMesh=addNode(p,'mesh');Object.assign(staticMesh,{x:115,y:60,width:20,height:20,fill:'#00ff60'});
+    p.nodes[0].keyframes[1].opacity=.2;p.nodes[0].keyframes[1].curves={opacity:{easing:'easeOut'}};
     const a = document.createElement('rash-player'), b = document.createElement('rash-player');
     a.setAttribute('controls',''); b.setAttribute('controls',''); document.body.append(a,b); a.project = p; b.project = p;
     a.seek(3); b.seek(1);
     const independent = a.currentFrame === 3 && b.currentFrame === 1;
+    const cameraGeometry=player=>[...player.shadowRoot.querySelectorAll(`[data-node-id="${staticMesh.id}"] [data-face-id]`)].map(n=>n.getAttribute('d')).join('|');
+    const animatedCameraEmbed=cameraGeometry(a)!==cameraGeometry(b);
     const node = a.shadowRoot.querySelector('[data-node-id="ball"]'); a.seek(2); const retained = node === a.shadowRoot.querySelector('[data-node-id="ball"]');
+    const independentTiming=Math.abs(Number(node.getAttribute('opacity'))-.4)<1e-9;
     a.play(); await new Promise(r => setTimeout(r, 130)); a.pause(); const played = a.currentFrame > 2;
     const exported = {};
     for (const format of ['svg','gif','pdf','png','json','html']) {
@@ -49,14 +55,19 @@ try {
     const svgDocument = new DOMParser().parseFromString(svgText, 'image/svg+xml');
     const svgValid = !svgDocument.querySelector('parsererror');
     const projected = !!svgDocument.querySelector('[data-mesh-frame]');
+    const staticMeshSampled=svgDocument.querySelectorAll(`[data-node-id="${staticMesh.id}"] [data-mesh-frame]`).length===p.duration;
+    const poseProject=structuredClone(p);poseProject.camera={...evaluateCamera(p.camera,0),keyframes:[]};
+    const frameZeroPoseMatches=await(await exportProject(poseProject,'png')).blob.arrayBuffer();
+    const cameraRasterMatches=Uint8Array.from(exported.png.bytes).every((v,i)=>v===new Uint8Array(frameZeroPoseMatches)[i])&&frameZeroPoseMatches.byteLength===exported.png.size;
     const png = new Blob([Uint8Array.from(exported.png.bytes)],{type:'image/png'}), bitmap=await createImageBitmap(png), canvas=document.createElement('canvas');canvas.width=160;canvas.height=96;const ctx=canvas.getContext('2d');ctx.drawImage(bitmap,0,0);bitmap.close();const pixels=ctx.getImageData(0,0,160,96).data;let greenPixels=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i+1]>pixels[i]*1.5&&pixels[i+1]>pixels[i+2]*1.5)greenPixels++;
     let mp4;
     if(mp4Support()) { const {blob} = await exportProject(p,'mp4'); mp4 = {size:blob.size,type:blob.type,bytes:Array.from(new Uint8Array(await blob.arrayBuffer()))}; }
     else { try { await exportProject(p,'mp4'); } catch(e) { mp4 = {unsupported:e.message}; } }
-    return { independent, retained, played, exported, svgValid, projected, greenPixels, mp4 };
+    return { independent, retained, played, exported, svgValid, projected, greenPixels, mp4, animatedCameraEmbed, independentTiming, staticMeshSampled, cameraRasterMatches };
   },assets);
   assert.equal(result.independent,true); assert.equal(result.retained,true); assert.equal(result.played,true); assert.equal(result.svgValid,true);
   assert.equal(result.projected,true);assert.ok(result.greenPixels>100,'PNG rasterization must contain the green projected mesh');
+  assert.equal(result.animatedCameraEmbed,true);assert.equal(result.independentTiming,true);assert.equal(result.staticMeshSampled,true);assert.equal(result.cameraRasterMatches,true);
   const exportDir = '/tmp/rash-export-validation'; await fs.mkdir(exportDir,{recursive:true});
   for(const [format,output] of Object.entries(result.exported)) { assert.ok(output.size > 20,format); await fs.writeFile(`${exportDir}/scene.${format}`, Uint8Array.from(output.bytes)); }
   assert.equal(Buffer.from(result.exported.gif.bytes.slice(0,6)).toString(),'GIF89a');
@@ -87,5 +98,5 @@ try {
   assert.equal(crossOrigin.ok,true,JSON.stringify(crossOrigin));
   assert.equal(crossOrigin.node.rotationY,73);assert.equal(crossOrigin.node.glow,4);assert.ok(crossOrigin.faces>0);
   assert.equal(errors.length,0,errors.join('\n'));
-  console.log(JSON.stringify({checks:['independent players','retained SVG nodes','play/pause','reduced motion','SVG XML','GIF bytes','PDF bytes','PNG bytes','JSON','HTML','cross-origin WASM worker with 3D/effect commands','projected mesh SVG','projected mesh raster pixels'],mp4:result.mp4.bytes?'verified':'unsupported with actionable error',artifacts:exportDir},null,2));
+  console.log(JSON.stringify({checks:['independent players','retained SVG nodes','play/pause','reduced motion','SVG XML','GIF bytes','PDF bytes','PNG bytes','JSON','HTML','cross-origin WASM worker with 3D/effect commands','projected mesh SVG','projected mesh raster pixels','animated camera embed','independent property timing embed','camera-only SVG sampling','raster camera pose parity'],mp4:result.mp4.bytes?'verified':'unsupported with actionable error',artifacts:exportDir},null,2));
 } finally { await browser.close(); await new Promise(r=>server.close(r)); await new Promise(r=>host.close(r)); }

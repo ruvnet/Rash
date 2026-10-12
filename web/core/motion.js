@@ -1,4 +1,4 @@
-import { cloneProject, evaluateNode, validateProject } from './model.js';
+import { cloneProject, evaluateNode, validateProject, ANIMATED_PROPERTIES, setKeyframeTiming } from './model.js';
 
 export const motionPresets = Object.freeze([
   {id:'fadeIn',name:'Fade in',description:'A clean opacity entrance.'},
@@ -21,16 +21,14 @@ function sequenceFor(node, preset) {
   }
 }
 
-// A keyframe currently has one timing curve shared by all of its properties.
-// Keep that existing curve when a preset lands on a key carrying another track.
+// Preserve the legacy default and unrelated overrides, then author the preset's
+// own sparse timing on every property that it controls.
 function mergeKey(existing,incoming,properties){
-  const shared=Object.keys(existing).some(property=>!['frame','easing','bezier'].includes(property)&&!properties.includes(property));
-  const easing=existing.easing,bezier=existing.bezier;
-  Object.assign(existing,incoming);
-  if(shared){existing.easing=easing;if(bezier)existing.bezier=bezier;else delete existing.bezier;}
+  for(const property of properties)if(Number.isFinite(incoming[property])){existing[property]=incoming[property];setKeyframeTiming(existing,property,incoming);}
+  return existing;
 }
 
-/** Author actual keys. Shared keys retain existing timing for unrelated tracks. */
+/** Author actual keys and independent timing without changing unrelated tracks. */
 export function applyMotionPreset(project, ids, preset, {startFrame=0,durationFrames=30,stagger=0}={}) {
   const spec=motionPresets.find(p=>p.id===preset);
   if(!spec)throw new Error('Unknown motion preset');
@@ -47,18 +45,18 @@ export function applyMotionPreset(project, ids, preset, {startFrame=0,durationFr
     if(end>=candidate.duration)throw new Error('Motion exceeds the timeline. Shorten the preset or extend the composition duration.');
     if(end<=start)throw new Error('Leave at least two frames for a motion preset');
     const sequence=sequenceFor(evaluateNode(node,start),preset);
-    const properties=Object.keys(sequence[0]).filter(key=>key!=='at');
-    for(const key of node.keyframes)if(key.frame>=start&&key.frame<=end)for(const property of properties)delete key[property];
-    node.keyframes=node.keyframes.filter(key=>Object.keys(key).some(k=>!['frame','easing','bezier'].includes(k)));
+    const properties=Object.keys(sequence[0]).filter(key=>ANIMATED_PROPERTIES.includes(key));
+    for(const key of node.keyframes)if(key.frame>=start&&key.frame<=end)for(const property of properties){delete key[property];if(key.curves)delete key.curves[property];}
+    node.keyframes=node.keyframes.filter(key=>ANIMATED_PROPERTIES.some(property=>Number.isFinite(key[property])));
     // An entrance with no preceding track holds its initial pose until its staggered start.
     if(start>0&&!node.keyframes.some(key=>key.frame<start&&properties.some(property=>key[property]!==undefined))){
       const initial={...sequence[0],frame:0,easing:'linear'};delete initial.at;
-      let key=node.keyframes.find(key=>key.frame===0);if(key)mergeKey(key,initial,properties);else node.keyframes.push(initial);
+      let key=node.keyframes.find(key=>key.frame===0);if(key)mergeKey(key,initial,properties);else node.keyframes.push(mergeKey(initial,initial,properties));
     }
     for(const sample of sequence){
       const key={...sample,frame:Math.round(start+(end-start)*sample.at),easing:sample.easing||'easeInOut'};delete key.at;
       const existing=node.keyframes.find(k=>k.frame===key.frame);
-      if(existing)mergeKey(existing,key,properties);else node.keyframes.push(key);
+      if(existing)mergeKey(existing,key,properties);else node.keyframes.push(mergeKey(key,key,properties));
     }
     node.keyframes.sort((a,b)=>a.frame-b.frame);
     if(node.keyframes.length>1000)throw new Error('A motion preset would exceed the 1,000 keyframe layer limit. Remove unused keys first.');

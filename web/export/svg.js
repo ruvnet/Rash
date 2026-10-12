@@ -1,4 +1,4 @@
-import { validateProject, evaluateNode, ANIMATED_PROPERTIES, MESH_TRIANGLES } from '../core/model.js';
+import { validateProject, evaluateNode, evaluateCamera, ANIMATED_PROPERTIES, CAMERA_PROPERTIES, MESH_TRIANGLES } from '../core/model.js';
 import { sceneToSVG, nodeAttributes, textMarkup, effectMarkup, effectFilter, groupStyle } from '../core/renderer.js';
 import { meshPaths } from '../core/three-svg.js';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
@@ -7,18 +7,24 @@ const attrs = o => Object.entries(o).map(([k, v]) => ` ${k}="${esc(v)}"`).join('
 export function animatedSVG(input) {
   const p = validateProject(input);
   const outputLimit=16_000_000;
-  const geometryMoves=n=>n.type==='mesh'&&n.keyframes.some(key=>['width','height','rotationX','rotationY','z'].some(property=>Object.hasOwn(key,property)));
+  const cameraMoves=p.camera.keyframes.some(key=>CAMERA_PROPERTIES.some(property=>Number.isFinite(key[property])));
+  const hasMeshes=p.nodes.some(n=>n.type==='mesh');
+  const geometryMoves=n=>n.type==='mesh'&&(cameraMoves||n.keyframes.some(key=>['width','height','rotationX','rotationY','z'].some(property=>Object.hasOwn(key,property))));
   const staticBytes = p.nodes.reduce((sum, n) => sum + (n.text?.length || 0) * 6 + (n.text?.split('\n').length || 0) * 40 + (n.d?.length || 0) + (n.type==='mesh'?MESH_TRIANGLES[n.primitive]*320:0) + 1000, 0);
   if (staticBytes > 16_000_000) throw new Error('SVG scene exceeds the 16 MB output budget. Reduce scene complexity.');
-  if (!p.nodes.some(n => n.keyframes.length)) return sceneToSVG(p, 0);
-  const moving = p.nodes.filter(n => n.keyframes.length).length;
+  if (!p.nodes.some(n => n.keyframes.length)&&!(cameraMoves&&hasMeshes)) return sceneToSVG(p, 0);
+  const moving = p.nodes.filter(n => n.keyframes.length||geometryMoves(n)).length;
   if (moving * p.duration > 500000) throw new Error('SVG animation exceeds the 500,000 layer-frame export budget. Shorten the timeline or reduce animated layers.');
-  const work = p.nodes.reduce((sum, n) => sum + (n.keyframes.length ? (p.duration + 1) * n.keyframes.length * ANIMATED_PROPERTIES.length : 0), 0);
+  const cameraWork=cameraMoves&&hasMeshes?p.duration*p.camera.keyframes.length*CAMERA_PROPERTIES.length:0;
+  const work = cameraWork+p.nodes.reduce((sum, n) => sum + (n.keyframes.length ? (p.duration + 1) * n.keyframes.length * ANIMATED_PROPERTIES.length : 0), 0);
   if (work > 5_000_000) throw new Error('SVG animation exceeds the evaluation budget. Reduce keyframes or shorten the timeline.');
   const triangleFrames=p.nodes.reduce((sum,n)=>sum+(geometryMoves(n)?MESH_TRIANGLES[n.primitive]*p.duration:0),0);
   if(triangleFrames>200_000)throw new Error('3D SVG animation exceeds the 200,000 triangle-frame export budget. Shorten the timeline or use fewer 3D layers.');
   const estimatedBytes = staticBytes + moving * (p.duration + 1) * 256 + triangleFrames*320;
   if (estimatedBytes > 16_000_000) throw new Error('SVG animation exceeds the 16 MB output budget. Reduce timeline or scene complexity.');
+  // Camera poses are sampled only after all allocation budgets pass, once per
+  // frame for the whole scene. Every mesh consumes the same plain pose object.
+  const cameras=cameraMoves&&hasMeshes?Array.from({length:p.duration},(_,frame)=>evaluateCamera(p.camera,frame)):[evaluateCamera(p.camera,0)];
   const frames = Array.from({ length: p.duration + 1 }, (_, i) => i);
   const times = frames.map(i => (i / p.duration).toFixed(8)).join(';');
   const animate = (values, attribute, type) => {
@@ -26,19 +32,19 @@ export function animatedSVG(input) {
     return `<${type ? 'animateTransform' : 'animate'} attributeName="${attribute}"${type ? ` type="${type}"` : ''} values="${esc(values.join(';'))}" keyTimes="${times}" dur="${p.duration / p.fps}s" calcMode="discrete" repeatCount="indefinite"/>`;
   };
   let effects='';
-  const faces=n=>meshPaths(n,p.camera).map(face=>`<path${attrs({d:face.d,fill:face.fill,'fill-opacity':face.fillOpacity,stroke:face.stroke,'stroke-width':face.strokeWidth,'stroke-linejoin':'round'})}/>`).join('');
+  const faces=(n,frame=0)=>meshPaths(n,cameras.length===1?cameras[0]:cameras[frame]).map(face=>`<path${attrs({d:face.d,fill:face.fill,'fill-opacity':face.fillOpacity,stroke:face.stroke,'stroke-width':face.strokeWidth,'stroke-linejoin':'round'})}/>`).join('');
   const geometryFrame=(n,index)=>{
     const start=index/p.duration,end=(index+1)/p.duration;
     const values=index===0?'inline;none;none':index===p.duration-1?'none;inline;inline':'none;inline;none;none';
     const keyTimes=index===0?`0;${end};1`:index===p.duration-1?`0;${start};1`:`0;${start};${end};1`;
-    return `<g data-mesh-frame="${index}" display="${index===0?'inline':'none'}"><animate attributeName="display" values="${values}" keyTimes="${keyTimes}" dur="${p.duration/p.fps}s" calcMode="discrete" repeatCount="indefinite"/>${faces(n)}</g>`;
+    return `<g data-mesh-frame="${index}" display="${index===0?'inline':'none'}"><animate attributeName="display" values="${values}" keyTimes="${keyTimes}" dur="${p.duration/p.fps}s" calcMode="discrete" repeatCount="indefinite"/>${faces(n,index)}</g>`;
   };
   const nodeSVG = (node) => {
     if (!node.visible) return '';
     const samples = node.keyframes.length ? frames.map(f => evaluateNode(node, Math.min(p.duration - 1, f))) : [node];
     const initial = samples[0];
     let body;
-    if(node.type==='mesh')body=geometryMoves(node)&&p.duration>1?samples.slice(0,p.duration).map(geometryFrame).join(''):faces(initial);
+    if(node.type==='mesh')body=geometryMoves(node)&&p.duration>1?Array.from({length:p.duration},(_,index)=>geometryFrame(samples.length===1?initial:samples[index],index)).join(''):faces(initial);
     else{
       const tag = node.type === 'ellipse' ? 'ellipse' : node.type === 'text' ? 'text' : node.type === 'path' ? 'path' : 'rect';
       const shapeAttrs = nodeAttributes(initial);
