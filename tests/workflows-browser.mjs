@@ -57,6 +57,23 @@ try{
     await page.getByLabel('Frames per second',{exact:true}).selectOption('24');
     p=await project();assert.equal(p.fps,24);assert.equal(p.duration,192);assert.deepEqual(p.nodes[0].keyframes.map(k=>k.frame),[0,24]);await command('Undo');assert.equal((await project()).fps,60);await command('Undo');assert.equal((await project()).fps,30);assert.deepEqual((await project()).nodes[0].keyframes.map(k=>k.frame),[0,30]);await command('Redo');assert.equal((await project()).fps,60);await command('Redo');assert.equal((await project()).fps,24);
   });
+  await check('reusing synchronized FPS, frame, easing and stroke controls commits the visible value',async()=>{
+    const toolbarFPS=page.getByLabel('Frames per second',{exact:true});
+    await toolbarFPS.selectOption('60');assert.equal((await project()).fps,60);
+    await setInput('Playback frames per second',30);assert.equal((await project()).fps,30);assert.equal(await toolbarFPS.inputValue(),'30');
+    await toolbarFPS.selectOption('60');assert.equal((await project()).fps,60,'Returning to a previously chosen toolbar value must update the project');
+    await tap(page.getByRole('button',{name:'Go to keyframe 61',exact:true}));assert.equal(await page.evaluate(()=>window.RashStudio.getFrame()),60,'Retimed keyframe chips must seek the actual new frame');assert.equal(await page.getByLabel('Current frame',{exact:true}).getAttribute('max'),'480');
+    await setInput('Current frame',31);assert.equal(await page.evaluate(()=>window.RashStudio.getFrame()),30);
+    await setInput('Playback frames per second',30);assert.equal(await page.getByLabel('Current frame',{exact:true}).inputValue(),'16');
+    await setInput('Current frame',31);assert.equal(await page.evaluate(()=>window.RashStudio.getFrame()),30,'A previously typed frame must work after FPS retimes the playhead');
+    await page.getByLabel('Keyframe easing',{exact:true}).selectOption('easeOut');
+    await setInput('Current frame',1);await page.getByLabel('Keyframe easing',{exact:true}).selectOption('easeIn');
+    await setInput('Current frame',31);assert.equal(await page.getByLabel('Keyframe easing',{exact:true}).inputValue(),'easeOut');
+    await page.getByLabel('Keyframe easing',{exact:true}).selectOption('easeIn');assert.equal((await project()).nodes[0].keyframes.find(k=>k.frame===30).easing,'easeIn','The same easing value must apply to a different keyframe');
+    await tap(page.getByRole('tab',{name:'Properties',exact:true}));await setInput('Stroke width',0);
+    await page.getByLabel('Stroke color',{exact:true}).fill('#4488ff');assert.equal((await project()).nodes[0].strokeWidth,1);assert.equal(await page.getByLabel('Stroke width',{exact:true}).inputValue(),'1');
+    await setInput('Stroke width',0);assert.equal((await project()).nodes[0].strokeWidth,0,'Autoenabled stroke width must remain editable back to its previous value');
+  });
   await check('path width and height edits resize rendered geometry',async()=>{
     await newProject();await tap(page.getByRole('tab',{name:'Library',exact:true}));await tap(page.getByRole('button',{name:'Add Curve',exact:true}));
     pathId=(await project()).nodes[0].id;await tap(page.getByRole('tab',{name:'Properties',exact:true}));
@@ -88,7 +105,7 @@ try{
   await check('closing a running game preview restores the authored scene',async()=>{
     await newProject('game');const before=await project(),player=before.nodes.find(n=>n.name==='player');
     await tap(page.locator('.preview-button'));const avatar=page.locator('#preview-stage [data-node-id="'+player.id+'"]');const initial=await avatar.getAttribute('transform');
-    await page.keyboard.down('ArrowRight');await page.waitForTimeout(280);await page.keyboard.up('ArrowRight');assert.notEqual(await avatar.getAttribute('transform'),initial,'Preview game must really move');
+    await page.keyboard.down('ArrowRight');try{await page.waitForFunction(({id,initial})=>document.querySelector('#preview-stage [data-node-id="'+id+'"]').getAttribute('transform')!==initial,{id:player.id,initial},{timeout:5000});}finally{await page.keyboard.up('ArrowRight');}assert.notEqual(await avatar.getAttribute('transform'),initial,'Preview game must really move');
     await close();assert.deepEqual(await project(),before,'Closing preview must not retain game state in authoring data');
   });
   await check('Actions close persists source with no previous save timer pending',async()=>{

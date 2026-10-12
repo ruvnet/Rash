@@ -30,14 +30,14 @@ Additional integration gaps at the baseline were missing embedded collector game
 
 ## Followup implementation and measured coverage
 
-The v0.1.1 candidate passed 28 Chromium mobile workflow checks, eleven Chromium workflow regression checks, the original 19 UI checks, 35 JavaScript unit tests, and the export and embedded game suites during integration. These counts describe the named checks in the repository; they are not a percentage of original Flash requirements. Publication and browser evidence for the deployed revision remain separate gates.
+The v0.1.1 candidate passed 28 Chromium mobile workflow checks, twelve Chromium workflow regression checks, the original 19 UI checks, 35 JavaScript unit tests, and the export and embedded game suites during integration. These counts describe the named checks in the repository; they are not a percentage of original Flash requirements. Publication and browser evidence for the deployed revision remain separate gates.
 
 | Finding | Candidate implementation | Evidence and explicit limit |
 | :--- | :--- | :--- |
 | UI01 and UI02 | Visible selection Edit, Duplicate and Delete actions, persistent touch history controls, a More menu, larger drawers, and text editing dialog | `tests/mobile-browser.mjs` exercises touch creation, editing, rename, deletion, undo, redo, open, save, help and export in portrait and landscape. |
 | UI03 | History starts when a movement exceeds the gesture threshold, rather than on initial selection | The touch selection after undo check preserves redo. A pointer cancellation after an actual movement currently keeps that edit and can be undone; it is not a rollback gesture. |
 | UI04 | Closing or switching away from Actions saves the draft through normal project history and autosave | Both mobile and workflow tests wait for the earlier save timer to settle, close without running, reload, and assert source persistence. |
-| UI05 | FPS conversion scales duration, playhead, and keyframe indices together | Workflow suite checks 30 to 60 to 24 fps in the inspector and toolbar. Downsampling can merge keys at one frame and is not lossless; this case has no separate behavioral acceptance in this release. |
+| UI05 | FPS conversion scales duration, playhead, and keyframe indices together | Workflow suite checks 30 to 60 to 24 fps, repeated control values, retimed keyframe buttons, focus preservation, and one undo entry per typing session. Downsampling can merge keys at one frame and is not lossless; this case has no separate behavioral acceptance in this release. |
 | UI06 | Paths retain source geometry dimensions and apply explicit width and height scaling in rendering and SVG output | Workflow suite measures actual path geometry after inspector and composition resize. Animated path export is covered by source review and existing export checks, not a comprehensive curve corpus. |
 | UI07 | Editor playback preserves an authoring snapshot, restores it when stopped, and saves that snapshot while playing | Workflow suite moves the game player and checks the complete project is restored on preview close. |
 | UI08 | Consistent guards reject editing locked layers; inspector mutators are disabled with a visible unlock action | Mobile suite checks blocked movement, property changes and deletion. Source review confirms keyframe, easing, rename, ordering and fill guards. Visibility remains an available layer control and duplication makes an unlocked copy. |
@@ -47,6 +47,8 @@ The v0.1.1 candidate passed 28 Chromium mobile workflow checks, eleven Chromium 
 | Embedded game | Player uses a separate game scene and binds keyboard and touch movement, pause and restart | `tests/embed-game-browser.mjs` checks movement, pause, restart, independent instances, immutable source and no browser errors. Media exports remain timeline snapshots and do not replay game input. |
 
 The final diff review also identified and corrected multiline text DOM amplification. A 3,935,161 byte project with 400 text nodes could expand into 1,960,400 SVG text spans. Validation now rejects more than 256 lines per text layer or 10,000 aggregate text lines. The adversarial import and aggregate limit regression tests pass; the hostile scene was never rendered. A workflow test verifies that a rejected multiline edit leaves the valid scene unchanged and displays an error. Editor and embed scripts stage changes on a separate candidate, validate the complete scene, then execute timeline controls. An actual WASM regression sets oversized text and calls `gotoAndStop`; a DOM observer confirms no rejected text expansion is rendered. Independent final review reran all eleven workflow checks successfully.
+
+The WebKit release gate exposed change events that did not fire when a touch left a numeric field focused. Inspector edits now commit on input while retaining the active control and grouping its edits into one undo entry. Independent review then reproduced stale FPS, frame and easing controls after programmatic updates. A shared control synchronization path and regression cover those values and retimed keyframe buttons. Game acceptance waits for observed movement rather than assuming a fixed rendering delay.
 
 ## Capability matrix
 
@@ -81,7 +83,7 @@ The final diff review also identified and corrected multiline text DOM amplifica
 
 ## Release acceptance
 
-Run `npm test`, `cargo test --locked`, `npm run test:ui`, `npm run test:exports`, and `npm run test:runtime` for the exact release revision. Record each new workflow assertion by name and repeat affected UI paths against the deployed URL. Desktop passing does not substitute for touch acceptance.
+Run `npm test`, `cargo test --locked`, `npm run test:ui`, `npm run test:mobile`, `npm run test:workflows`, `RASH_BROWSER=webkit npm run test:workflows`, `npm run test:embed-game`, `npm run test:exports`, and `npm run test:runtime` for the exact release revision. Record each new workflow assertion by name and repeat affected UI paths against the deployed URL. Desktop passing does not substitute for touch acceptance.
 
 The core mobile acceptance sequence is: create a blank composition, add and select text, edit it, change geometry and color, duplicate, lock and attempt edits, unlock, delete, undo and redo, add and remove a keyframe, save and reopen a project, and export through visible controls. No hardware keyboard, direct calls into application action handlers, or injected DOM events may substitute for the relevant gestures. Reading diagnostics for assertions is acceptable.
 
