@@ -1,3 +1,12 @@
+<a href="https://ruvnet.github.io/Rash/header/">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="web/header/rash-header.poster.svg">
+    <img src="web/header/rash-header.svg" alt="Rash: ideas in motion. Design vectors, choreograph animation, direct in 3D and publish to the open web." width="1200" height="720">
+  </picture>
+</a>
+
+[Play or pause the explainer](https://ruvnet.github.io/Rash/header/) · [Static header](web/header/rash-header.poster.svg) · [Header source](scripts/generate-header.mjs)
+
 # Rash Studio
 
 **Ideas in motion. Built for the open web.**
@@ -5,6 +14,8 @@
 [Open the studio](https://ruvnet.github.io/Rash/) · [Compatibility](docs/compatibility.md) · [Architecture](docs/adr/001-svg-scene-and-worker-runtime.md) · [Security](docs/security.md)
 
 Rash is an open source SVG animation studio with a Rust/WebAssembly scripting runtime, a visual timeline, and portable JavaScript embeds. It brings the stage, layers, tools, properties and frame based workflow of classic Flash into a responsive browser editor.
+
+The twenty second header tours design, motion, 3D and publishing. It is a bespoke, script free SVG using Rash’s production geometry projection, with a static reduced motion fallback. It is not an editor project; the six studies below include editable source and unmodified system exports. Reproduce it with `npm run header:generate`, then verify with `npm run test:header`.
 
 **Status: experimental v0.4.0.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
 
