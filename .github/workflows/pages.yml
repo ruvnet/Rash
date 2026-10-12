@@ -24,7 +24,11 @@ jobs:
       - run: cargo test --locked
       - run: npm run build:wasm
       - run: npm test
+      - run: npm run examples:generate
+      - run: git diff --exit-code -- web/examples
       - run: npx playwright install --with-deps chromium webkit
+      - run: npm run test:examples
+      - run: RASH_BROWSER=webkit npm run test:examples
       - run: npm run test:ui
       - run: npm run test:mobile
       - run: npm run test:workflows

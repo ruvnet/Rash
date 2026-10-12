@@ -21,7 +21,9 @@
     "test:rollback": "node tests/rollback-browser.mjs",
     "build:three": "node scripts/vendor-three.mjs",
     "test:camera": "node tests/camera-browser.mjs",
-    "test:masks": "node tests/masks-browser.mjs"
+    "test:masks": "node tests/masks-browser.mjs",
+    "examples:generate": "node scripts/generate-examples.mjs",
+    "test:examples": "node tests/examples-browser.mjs"
   },
   "engines": {
     "node": ">=22"
