@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-12T22:47:19.800Z",
+  "measuredAt": "2026-10-12T22:54:43.467Z",
   "command": "node scripts/benchmark-mask.mjs",
   "environment": {
     "node": "v24.19.0",
@@ -30,7 +30,7 @@
     "limitations": "Headless shared host. Excludes editor panels, user input, mobile hardware and encoding. No timing CI threshold."
   },
   "sourceHashes": {
-    "web/core/model.js": "2e184ef0bfd0c711cb43d36c8a961d4077896b94ef1d4e5bd309e8983490d800",
+    "web/core/model.js": "cd55e468b51400fff35194d0a283aa7adfa81f043b769a14cf1a6ff3a62667e3",
     "web/core/renderer.js": "e20763a7c183547394bc4caca14be822888920e0be1d9b467d87cc029ea32202",
     "web/export/svg.js": "f7939d7e8248d564c2ca1269edd1dff9115963a59d357c0b7723a16096882c7f",
     "web/core/three-svg.js": "b46a8caed46a0029f15e20716361c31e23aa82f11727caeba182b36c1c2c27b1",
@@ -43,19 +43,19 @@
       "count": 200,
       "baseline": {
         "renderMs": {
-          "median": 0.7,
-          "p95": 1
+          "median": 0.8,
+          "p95": 1.5
         },
         "frameIntervalMs": {
           "median": 16.7,
-          "p95": 16.7
+          "p95": 16.8
         },
         "samples": 120
       },
       "masked": {
         "renderMs": {
-          "median": 1.6,
-          "p95": 2.1
+          "median": 1.7,
+          "p95": 2.9
         },
         "frameIntervalMs": {
           "median": 16.7,
@@ -70,8 +70,8 @@
       "count": 32,
       "baseline": {
         "renderMs": {
-          "median": 0.6,
-          "p95": 1.2
+          "median": 0.7,
+          "p95": 1.3
         },
         "frameIntervalMs": {
           "median": 16.7,
@@ -82,15 +82,15 @@
       "masked": {
         "renderMs": {
           "median": 0.8,
-          "p95": 1
+          "p95": 1.3
         },
         "frameIntervalMs": {
           "median": 16.7,
-          "p95": 16.7
+          "p95": 16.8
         },
         "samples": 120
       },
-      "medianRenderDeltaMs": 0.2
+      "medianRenderDeltaMs": 0.1
     }
   ],
   "retentionChecks": [

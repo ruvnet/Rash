@@ -24,8 +24,8 @@ The Pages workflow also runs Rust tests and a WASM rebuild, all JavaScript tests
 
 | Scene | Without clipping median / p95 | With clipping median / p95 | Median increase |
 | --- | --- | --- | --- |
-| 200 rectangles | 0.7 / 1.0 ms | 1.6 / 2.1 ms | 0.9 ms |
-| 32 boxes | 0.6 / 1.2 ms | 0.8 / 1.0 ms | 0.2 ms |
+| 200 rectangles | 0.8 / 1.5 ms | 1.7 / 2.9 ms | 0.9 ms |
+| 32 boxes | 0.7 / 1.3 ms | 0.8 / 1.3 ms | 0.1 ms |
 
 Times cover synchronous scene evaluation and SVG updates, excluding paint, editor panels, encoders and physical mobile hardware. There is no universal FPS claim or timing CI threshold. The script also verifies retained identity, renderer namespace isolation, shape replacement, disable/delete cleanup and static mesh retention.
 

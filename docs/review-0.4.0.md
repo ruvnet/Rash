@@ -36,6 +36,8 @@ The probe passed with no uncaught browser errors. A separate actual WASM check a
 
 The pinned `@claude-flow/cli@3.25.6` command `security scan --target web/core --depth deep --type all` completed with zero reported signals. This heuristic result is supplementary evidence, not proof that the application has no vulnerabilities. It did not scan the complete repository. No fresh vulnerability advisory query was performed; no advisory feed timestamp or dependency clean claim is made. The lockfile identity below records the dependency baseline reviewed here. Node was 24.19.0 and Playwright was 1.56.1.
 
+Final visual QA delta: the Mask reveal template headline width changed from 660 to 720 authored pixels; its terminal mask width derives from the same value. This single constant change gives the measured glyphs room without changing validation, rendering or execution boundaries. The model owner's reported glyph measurement was 702.890625 pixels before preset scaling, with at least 7.48 pixels clearance across seven presets after the fix; the reviewer did not independently measure those browser glyph bounds. The reviewer reran `node --test tests/masks.test.js tests/mask-renderer.test.js`: all **22 tests passed** on the final model hash below. The final lockfile delta changes only root package version metadata from 0.3.0 to 0.4.0; dependency versions are unchanged.
+
 ## Limits and acceptance gate
 
 This release supports one rectangular or elliptical hard clip per layer. Feathering, inversion, referenced layers, arbitrary imported mask markup, multiple masks and nested compositions are outside the reviewed implementation. Fit and reveal presets use authored layer width and height, not measured text glyph bounds or the full projected extent of 3D faces; authors can enlarge a clip numerically when content extends outside that rectangle.
@@ -51,11 +53,11 @@ Acceptance requires successful exact commit CI, desktop and touch mask workflows
 | Asset | SHA 256 |
 | --- | --- |
 | `web/app.js` | `d50856a02cea8e8b4e1bee195d1aa9d1fb53dae39c8b3e741b560d2cab817054` |
-| `web/core/model.js` | `2e184ef0bfd0c711cb43d36c8a961d4077896b94ef1d4e5bd309e8983490d800` |
+| `web/core/model.js` | `cd55e468b51400fff35194d0a283aa7adfa81f043b769a14cf1a6ff3a62667e3` |
 | `web/core/motion.js` | `d912351151b47112cf6a487ae24ef322ff86b70c4f0004752221a1293f71d374` |
 | `web/core/renderer.js` | `e20763a7c183547394bc4caca14be822888920e0be1d9b467d87cc029ea32202` |
 | `web/export/svg.js` | `f7939d7e8248d564c2ca1269edd1dff9115963a59d357c0b7723a16096882c7f` |
 | `web/styles/studio.css` | `88a305dd4908fa1afb00a0a303403f0ab4785311e3807c40b5fc050eb542c6e2` |
-| `package-lock.json` | `0fed7d9487ab7cf95386106c0f2c609a7c92f79c317927b25b784a92ecb1d9d5` |
+| `package-lock.json` | `6ced445587b9bd9c779e43ca94f5d399c973ac5482066a00608229de3a6b953f` |
 
 This report is frozen to these source identities. Subsequent source changes require review of their delta. A package version only metadata change does not alter the reviewed dependency versions, but its new lockfile hash must be recorded in release evidence.

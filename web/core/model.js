@@ -312,7 +312,7 @@ export function createProject(template='orbit',preset='web'){
  } else if(template==='mask'){
   p.background='#111925';
   text('Eyebrow','R A S H   /   THE ART OF REVEAL',76,64,15,'#99b3b3');
-  const title=node('Wipe / headline','text',76,207,660,125,{text:'A little mystery.',fontSize:78*s,fontWeight:700,fill:'#f4f2ec',maskType:'rect'});
+  const title=node('Wipe / headline','text',76,207,720,125,{text:'A little mystery.',fontSize:78*s,fontWeight:700,fill:'#f4f2ec',maskType:'rect'});
   title.keyframes=[{frame:0,maskWidth:0},{frame:75,maskWidth:title.width,easing:'bezier',bezier:[.16,1,.3,1]}];
   const underline=node('Wipe / accent','rect',82,352,580,9,{fill:'#7defd2',maskType:'rect',rx:4});
   underline.keyframes=[{frame:0,maskWidth:0},{frame:25,maskWidth:0},{frame:95,maskWidth:underline.width,easing:'easeInOut'}];
