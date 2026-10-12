@@ -1,0 +1,10 @@
+node_modules/
+target/
+dist/
+test-results/
+.DS_Store
+.ruflo/
+.claude-flow/
+.swarm/
+web/vendor/ruffle/*.wasm
+web/vendor/ruffle/*.js

@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createProject,templates,presets,evaluateScene,addNode,addKeyframe,parseProject,serializeProject,validateProject,ease} from '../web/core/model.js';
+import {sceneToSVG} from '../web/core/renderer.js';
+import {createGame} from '../web/core/game.js';
+test('every template and size roundtrips through the bounded schema',()=>{for(const t of templates)for(const s of presets){const p=createProject(t.id,s.id);assert.equal(p.width,s.width);assert.deepEqual(parseProject(serializeProject(p)),p);assert.ok(sceneToSVG(p).startsWith('<svg'));}});
+test('linear keyframes interpolate and hold final state',()=>{const p=createProject('blank');const n=addNode(p);n.x=0;n.keyframes=[{frame:0,x:0},{frame:100,x:100,easing:'linear'}];assert.equal(evaluateScene(p,50)[0].x,50);assert.equal(evaluateScene(p,150)[0].x,100);assert.equal(ease(0.5,'easeInOut'),0.5);});
+test('keyframes are upserted and sorted',()=>{const p=createProject('blank');const n=addNode(p);addKeyframe(p,n.id,100);addKeyframe(p,n.id,5);addKeyframe(p,n.id,5);assert.deepEqual(n.keyframes.map(k=>k.frame),[5,100]);});
+test('untrusted text is XML encoded and colors cannot fetch remote data',()=>{const p=createProject('blank');const n=addNode(p,'text');n.text='<script>alert(1)</script>';n.fill='url(https://attacker.test/x)';n.d='M0 0<script>1</script>';const svg=sceneToSVG(p);assert.ok(!svg.includes('<script>'));assert.ok(!svg.includes('attacker'));assert.ok(svg.includes('&lt;script&gt;'));});
+test('invalid versions, duplicate IDs and oversize input reject',()=>{const p=createProject('blank');assert.throws(()=>validateProject({...p,version:2}));const n=addNode(p);p.nodes.push({...n});assert.throws(()=>validateProject(p),/unique/);assert.throws(()=>parseProject(' '.repeat(5_000_001)),/limit/);});
+test('nonfinite coordinates cannot poison SVG',()=>{const p=createProject('blank');const n=addNode(p);n.x=NaN;n.y=Infinity;const svg=sceneToSVG(p);assert.ok(!/NaN|Infinity/.test(svg));});
+test('game uses bounded steps, collects, collides and resets',()=>{const p=createProject('game');const g=createGame(p);const player=p.nodes.find(n=>n.name==='player');const energy=p.nodes.find(n=>n.name==='energy-0');player.x=energy.x;player.y=energy.y;g.step(1/30);assert.equal(g.score,1);const hazard=p.nodes.find(n=>n.name==='hazard-0');player.x=hazard.x;player.y=hazard.y;g.step(1/30);assert.equal(g.status,'lost');g.reset();assert.equal(g.score,0);assert.equal(g.status,'ready');});

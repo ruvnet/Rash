@@ -1,0 +1,35 @@
+# Security model
+
+Rash processes user-authored project files and script source locally. Treat all imported content as untrusted data. The implementation narrows capabilities and budgets resources; it is not a claim of a completed independent security audit.
+
+## Boundaries
+
+| Input or component | Control | Remaining responsibility |
+| --- | --- | --- |
+| Project JSON | Version and field normalization, bounded node counts, unique IDs, import size limit | Keep schema validation at every import and embed boundary |
+| SVG scene | Allowlisted node kinds and attributes, escaped serialized text, textContent for live text | Do not add arbitrary HTML, event handlers, external URLs or raw imported SVG |
+| RashScript | Rust parser, explicit calls/properties, no JavaScript eval fallback | Extend features through explicit capabilities and regression tests |
+| Runtime worker | Dedicated worker, bounded request queue and wall clock termination | Handle initialization and runtime failures visibly; dispose workers when leaving a player |
+| Rust interpreter | 64 KiB source, 32,768 tokens, 50,000 operations, depth 96, 4,096 output items, bounded strings | WASM memory still consumes process resources; budgets do not prove absence of every DoS |
+| Script effects | Commands returned only on successful execution | Revalidate resulting properties in the host application before applying them |
+| rash resources | Local allowlist, conservative IDs, no query, fragment, traversal or remote scheme | Do not turn resource resolution into network fetch or shell dispatch |
+| Template search | Local WASM assets, bounded metadata, one cached index, explicit fallback | Hashed features can collide and are not a security or semantic classifier |
+| Export | Local rasterization and bounded video/GIF duration | Large raster exports can still consume significant memory and CPU |
+| Persistence | Browser local storage plus explicit JSON backup | Anyone controlling that browser profile can inspect stored projects |
+| Claude plugin | Skills only; no automatic hooks, credentials or background service | Host permission settings still govern agent actions |
+
+## Embed trust
+
+Loading `embed.js` grants that library the normal privileges of JavaScript on the embedding origin. Shadow DOM is style encapsulation, not a security sandbox. The RashScript interpreter has a narrower capability model and does not receive those host privileges. Use an iframe with an appropriate sandbox policy when embedding mutually untrusted applications; validate the actual chosen policy with the runtime.
+
+Sites with restrictive CSP need to permit the exact module, worker and WASM asset origins they choose. Cross-origin module workers may use a local blob wrapper and therefore require `worker-src blob:` as well as the relevant script and connection policies. Do not weaken an entire site's policy to `unsafe-eval` for RashScript; there is no JavaScript eval execution path for authored scripts. WASM compilation policy and browser support must be checked separately.
+
+Static hosting must not contain API tokens or account credentials. An optional future Cloudflare service needs tenant identity, per-object authorization, upload limits, rate limits and explicit CORS rules. The current studio does not send projects to a shared persistence service.
+
+## Supply chain
+
+`web/vendor/ruvector/provenance.json` pins the upstream npm version, tarball integrity, local SHA-256 hashes and license. Validate hashes after changing vendored assets. The optional MetaHarness command pins version 0.4.17 and disables install scripts and optional dependencies. Its transitive dependencies follow the published package ranges; they are not locked by the version pin alone. Do not interpret its heuristic tool safety score as a security assessment.
+
+## Verification
+
+`tests/ecosystem.test.js` exercises malformed local URIs, prototype-related lookup attempts, bounded controls, actual WASM execution and backend parity. The Rust tests must cover rejected dynamic execution, unsupported imports and bounded infinite loops. Browser tests must include malicious project text, import validation and host embed behavior. Recheck these boundaries whenever adding new node types, asset imports, network APIs, script features or persistence.

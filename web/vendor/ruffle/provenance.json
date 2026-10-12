@@ -1,0 +1,39 @@
+{
+  "package": "@ruffle-rs/ruffle",
+  "version": "0.7.1",
+  "registry": "https://registry.npmjs.org/@ruffle-rs/ruffle/-/ruffle-0.7.1.tgz",
+  "npmIntegrity": "sha512-6ZWxx/cfX3RoNyQ1AVimECSae4gKqMxdPimOD+chiIcOFiJS0ATGKcjkretxNT03lqNUpiSyJjF55AuvvZ+QeA==",
+  "license": "MIT OR Apache-2.0",
+  "files": {
+    "172de42e6619eac8f371.wasm": {
+      "bytes": 14302754,
+      "sha256": "1ed33b9b71a6b01b9aafafed660be343ffeb2d246c5d79e6425a32bf93e38207"
+    },
+    "878d548199cddef07035.wasm": {
+      "bytes": 14227884,
+      "sha256": "af9b6a13a8f5e8d305bc3ce28a4edf3f6242df1183e8576ad4ca086e9f21eaea"
+    },
+    "LICENSE_APACHE": {
+      "bytes": 9723,
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+    },
+    "LICENSE_MIT": {
+      "bytes": 1097,
+      "sha256": "4de9338a7879c68e911742a7d691f0797ff1ef8d8a6fb978b0c711e258fe959c"
+    },
+    "core.ruffle.16d61072ac7fdc4d5013.js": {
+      "bytes": 108322,
+      "sha256": "d27c6bdce2a34afb32e8dfa40970bc7e86cbcb912f92db7eb3e1ac70e943bd82"
+    },
+    "core.ruffle.994eeef0a471a88cd0e3.js": {
+      "bytes": 114743,
+      "sha256": "d89e507ee60d550629e9229aa1e4dd4f9e75ec7db271e0135cbc87dab042ea51"
+    },
+    "ruffle.js": {
+      "bytes": 465885,
+      "sha256": "26036a94567088dfb3de88a759e8ed10a4cea07b29500af36f345eef42420098"
+    }
+  },
+  "npmIntegrityVerified": true,
+  "tarballSha256": "dc9e7407549a91accc41a14932b0b9d9a9d51a3742ce6f020888c8a76682b157"
+}

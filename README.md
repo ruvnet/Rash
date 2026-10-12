@@ -1,0 +1,105 @@
+# Rash Studio
+
+**Ideas in motion. Built for the open web.**
+
+![Rash Studio desktop](docs/assets/studio-desktop.png)
+
+[Open the studio](https://ruvnet.github.io/Rash/) · [Compatibility](docs/compatibility.md) · [Architecture](docs/adr/001-svg-scene-and-worker-runtime.md) · [Security](docs/security.md)
+
+Rash is an open source SVG animation studio with a Rust/WebAssembly scripting runtime, a visual timeline, and portable JavaScript embeds. It brings the stage, layers, tools, properties and frame based workflow of classic Flash into a responsive browser editor.
+
+**Status: experimental v0.1.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md).
+
+## Create and publish
+
+1. Open [Rash Studio](https://ruvnet.github.io/Rash/).
+2. Pick a template or create a composition in web, social, story, banner, HD, A4 or classic Flash dimensions.
+3. Draw vectors, edit text, move objects, change their properties, and add timeline keyframes.
+4. Preview the animation or run a bounded script in the Actions editor.
+5. Export the project or copy an embed. Local autosave stays in your browser; download project JSON for backup.
+
+| Capability | Implementation |
+| :--- | :--- |
+| Authoring | SVG stage, rectangle/ellipse/text/path objects, property inspector, layers, history, zoom |
+| Animation | Keyframes, linear/eased interpolation, SVG timeline, playback, scrubbing |
+| Templates | Orbital product story, launch, social story, kinetic typography, collector game, blank |
+| Native scripts | Rust parser/interpreter in a dedicated worker; typed variables, arithmetic, conditions, loops, trace, scene properties, timeline controls |
+| Legacy content | Isolated, optional self hosted Ruffle SWF player; no universal compatibility claim |
+| Search | Lazy loaded real RuVector WASM, deterministic lexical feature vectors, explicit JavaScript fallback |
+| Resources | Allowlisted local `rash://project/current`, `rash://node/ID`, `rash://template/orbit`, `rash://help/welcome` |
+| Exports | Animated SVG, GIF, PNG, raster PDF, self contained animated HTML, project JSON, browser supported MP4 |
+| Embedding | Independent `<rash-player>` instances, shadow DOM styles, responsive layout, controls, reduced motion |
+| Developer tools | Claude plugin manifest, marketplace, author/verify skills, MetaHarness evidence script |
+
+GIF is capped at 640 pixels and 120 sampled frames. MP4 is a real time browser recording, capped at 1920 pixels and 60 seconds; unsupported browsers report an explicit error. PDF exports frame zero as a raster image. These limits keep the static application bounded and honest.
+
+## Run locally
+
+```sh
+git clone https://github.com/ruvnet/Rash.git
+cd Rash
+npm ci --ignore-scripts
+npm run setup:legacy
+npm run dev
+```
+
+Open `http://localhost:4173`. Prebuilt WASM is included. To rebuild the Rust runtime:
+
+```sh
+rustup target add wasm32-unknown-unknown
+npm run build:wasm
+cargo test --locked
+npm test
+npx playwright install --with-deps chromium
+npm run test:ui
+node tests/exports-browser.mjs
+node tests/runtime-browser.mjs
+npm run bench
+npm run build
+```
+
+`dist/` is a static site. The GitHub Actions workflow runs Rust, JavaScript and browser checks before publishing GitHub Pages. It does not require Cloudflare or a paid service.
+
+## Embed anywhere
+
+Export a project as `scene.rash.json`, host it on your site, and use:
+
+```html
+<script type="module" src="https://ruvnet.github.io/Rash/embed.js"></script>
+<rash-player src="/scene.rash.json" controls autoplay loop
+  style="display:block;width:100%;aspect-ratio:16/9"></rash-player>
+```
+
+The editor also generates an embed with inline, safely encoded project data. CORS and your site's content security policy must permit the hosted player and any fetched scene. See [embedding](docs/embed.md).
+
+## Write a script
+
+```actionscript
+var total:Number = 0;
+for (var i:int = 0; i < 10; i++) {
+  total += i;
+}
+trace(total);
+stop();
+```
+
+Use `getNode("layer-id").x = 120;` to modify a scene object. Execution has instruction, source, memory, recursion and output budgets. A failed run discards its commands. Scripts cannot access the DOM, browser storage, network, or operating system. This is a purpose built interpreter, never JavaScript `eval`.
+
+## Claude plugin and skills
+
+```text
+/plugin marketplace add ruvnet/Rash
+/plugin install rash@rash-tools
+```
+
+The repository contains `.claude-plugin/` and `skills/rash-author` / `skills/rash-verify`. Validate installation against your Claude host version. The package contains authoring and verification guidance, with no automatic command hooks or remote credential handling.
+
+## Architecture and governance
+
+The [ADRs](docs/adr/) document scene ownership, rendering, worker isolation, local resource addresses, search, evaluation and packaging. [MetaHarness](scripts/metaharness-evaluate.mjs) records a static repository score and measured search checks. It does not certify quality or demonstrate self improvement.
+
+Ruflo AI Team records task ownership; concurrent Codex workers implement isolated modules. ruOS provides deployment and independent execution evidence. Federation was unavailable during the initial build, so no federation execution or successful claims are asserted.
+
+The initial scope excludes an FLA importer, full AS3 compiler/VM, Stage3D, a video/audio compositor, collaborative cloud editing, arbitrary SVG imports, a complete game engine and universal SWF parity. These require separate compatibility fixtures and measured acceptance gates.
+
+MIT for Rash. Vendored RuVector and Ruffle retain their original licenses and provenance.

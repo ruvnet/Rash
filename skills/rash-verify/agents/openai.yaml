@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rash Verify"
+  short_description: "Verify Rash scenes, embeds, and runtime limits"
+  default_prompt: "Use $rash-verify to verify this Rash project and identify unsupported ActionScript."
