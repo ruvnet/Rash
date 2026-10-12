@@ -8,7 +8,7 @@ import { sceneToSVG } from '../web/core/renderer.js';
 test('legacy projects keep schema version one and acquire bounded camera and effect defaults',()=>{
   const legacy={version:1,nodes:[{id:'shape',type:'rect',x:20}]};
   const project=validateProject(legacy);
-  assert.deepEqual(project.camera,{yaw:0,pitch:0,distance:800,fov:45});
+  assert.deepEqual(project.camera,{yaw:0,pitch:0,distance:800,fov:45,keyframes:[]});
   assert.equal(project.nodes[0].blur,0);assert.equal(project.nodes[0].glow,0);assert.equal(project.nodes[0].blendMode,'normal');
   assert.equal(project.version,1);
 });
@@ -28,7 +28,7 @@ test('camera, primitive, effects and custom curve bounds reject active content a
   project.camera={yaw:999,pitch:-999,distance:Infinity,fov:-100};
   project.nodes=[{id:'mesh',type:'mesh',width:20,height:20,primitive:'__proto__',rotationX:NaN,z:999,blur:Infinity,glow:999,blendMode:'url(https://evil.test)',keyframes:[{frame:10,z:-999,blur:-30,glow:999,easing:'bezier',bezier:[-50,Infinity,50,99]}]}];
   const clean=validateProject(project),node=clean.nodes[0];
-  assert.deepEqual(clean.camera,{yaw:180,pitch:-180,distance:800,fov:20});
+  assert.deepEqual(clean.camera,{yaw:180,pitch:-180,distance:800,fov:20,keyframes:[]});
   assert.equal(node.primitive,'box');assert.equal(node.z,300);assert.equal(node.blur,0);assert.equal(node.glow,30);assert.equal(node.blendMode,'normal');
   assert.deepEqual(node.keyframes[0].bezier,[0,.1,1,3]);
   assert.equal(node.keyframes[0].z,-300);assert.equal(node.keyframes[0].blur,0);assert.equal(node.keyframes[0].glow,30);

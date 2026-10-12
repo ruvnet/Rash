@@ -1,4 +1,4 @@
-import {evaluateScene,validateProject,safeColor,filterSceneBounds,hasNodeEffects} from './model.js';
+import {evaluateScene,evaluateCamera,validateProject,safeColor,filterSceneBounds,hasNodeEffects} from './model.js';
 import {meshPaths} from './three-svg.js';
 const NS='http://www.w3.org/2000/svg';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -56,14 +56,14 @@ export function renderScene(svg,project,frame=0,options={}){
  set(svg,'viewBox',`0 0 ${project.width} ${project.height}`);set(svg,'xmlns',NS);
  let cache=caches.get(svg);if(!cache){svg.replaceChildren();const bg=document.createElementNS(NS,'rect'),defs=document.createElementNS(NS,'defs');bg.setAttribute('data-background','');svg.append(defs,bg);cache={bg,defs,prefix:`rash-view-${++rendererSequence}`,nodes:new Map(),effects:new Map(),selection:null};caches.set(svg,cache);}
  for(const [k,v]of Object.entries({width:project.width,height:project.height,fill:project.background}))set(cache.bg,k,v);
- const nodes=evaluateScene(project,frame);const wanted=new Set(nodes.map(n=>n.id));
+ const nodes=evaluateScene(project,frame),camera=evaluateCamera(project.camera,Math.max(0,Math.min(project.duration-1,Number(frame)||0)));const wanted=new Set(nodes.map(n=>n.id));
  for(const [id,entry] of cache.nodes)if(!wanted.has(id)){entry.g.remove();cache.nodes.delete(id);}
  for(const [id,entry] of cache.effects)if(!wanted.has(id)){entry.filter.remove();cache.effects.delete(id);}
  nodes.forEach((n,index)=>{
   let entry=cache.nodes.get(n.id);
   if(!entry||entry.type!==n.type){entry?.g.remove();const g=document.createElementNS(NS,'g');const shape=document.createElementNS(NS,tag(n));g.append(shape);entry={g,shape,type:n.type};cache.nodes.set(n.id,entry);}
   const {g,shape}=entry;set(g,'data-node-id',n.id);set(g,'transform',transform(n));set(g,'opacity',n.opacity);set(g,'display',n.visible?'inline':'none');set(g,'style',`cursor:${n.locked?'default':'move'};${groupStyle(n)}`);g.onclick=options.onSelect?e=>{e.stopPropagation();if(!n.locked)options.onSelect(n.id,e);}:null;
-  if(n.type==='mesh')renderMesh(entry,n,project.camera);else for(const [k,v]of Object.entries(nodeAttributes(n)))set(shape,k,v);
+  if(n.type==='mesh')renderMesh(entry,n,camera);else for(const [k,v]of Object.entries(nodeAttributes(n)))set(shape,k,v);
   renderEffect(cache,n,project.camera,project.nodes[index]);const filter=effectFilter(n,cache.prefix);if(filter)set(g,'filter',filter);else g.removeAttribute('filter');
   if(n.type==='text'&&entry.text!==n.text){shape.replaceChildren(...String(n.text).split(/\r?\n/).map((line,index)=>{const span=document.createElementNS(NS,'tspan');span.setAttribute('x','0');span.setAttribute('dy',index?'1.2em':'0');span.textContent=line||'\u00a0';return span;}));entry.text=n.text;}
   if(svg.children[index+2]!==g)svg.insertBefore(g,svg.children[index+2]||null);
@@ -87,11 +87,11 @@ export function renderScene(svg,project,frame=0,options={}){
 }
 function attr(obj){return Object.entries(obj).map(([k,v])=>` ${k}="${esc(v)}"`).join('');}
 export function sceneToSVG(input,frame=0,options={}){
- const p=validateProject(input);const nodes=evaluateScene(p,frame);
+ const p=validateProject(input);const nodes=evaluateScene(p,frame),camera=evaluateCamera(p.camera,Math.max(0,Math.min(p.duration-1,Number(frame)||0)));
  const prefix=options.prefix||'rash',effects=nodes.map((n,index)=>effectMarkup(n,prefix,p.camera,p.nodes[index])).join('');
  const content=nodes.filter(n=>n.visible).map(n=>{
   const filter=effectFilter(n,prefix);
-  const shape=n.type==='mesh'?meshPaths(n,p.camera).map(face=>`<path${attr(faceAttributes(face))}/>`).join(''):`<${tag(n)}${attr(nodeAttributes(n))}>${n.type==='text'?textMarkup(n.text):''}</${tag(n)}>`;
+  const shape=n.type==='mesh'?meshPaths(n,camera).map(face=>`<path${attr(faceAttributes(face))}/>`).join(''):`<${tag(n)}${attr(nodeAttributes(n))}>${n.type==='text'?textMarkup(n.text):''}</${tag(n)}>`;
   return `<g data-node-id="${esc(n.id)}" transform="${transform(n)}" opacity="${n.opacity}" style="${groupStyle(n)}"${filter?` filter="${esc(filter)}"`:''}>${shape}</g>`;
  }).join('');
  return `<svg xmlns="${NS}" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}" role="img" aria-label="${esc(p.name)}"><title>${esc(p.name)}</title>${effects?`<defs>${effects}</defs>`:''}<rect width="100%" height="100%" fill="${esc(p.background)}"/>${content}</svg>`;

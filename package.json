@@ -1,6 +1,6 @@
 {
   "name": "rash-studio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "A Rust and SVG animation studio for the open web",
@@ -19,7 +19,8 @@
     "test:embed-game": "node tests/embed-game-browser.mjs",
     "test:motion": "node tests/motion-browser.mjs",
     "test:rollback": "node tests/rollback-browser.mjs",
-    "build:three": "node scripts/vendor-three.mjs"
+    "build:three": "node scripts/vendor-three.mjs",
+    "test:camera": "node tests/camera-browser.mjs"
   },
   "engines": {
     "node": ">=22"
