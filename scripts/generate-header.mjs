@@ -62,12 +62,12 @@ function panel(index){
   content+=group(pathSVG('M0 12V98',C.paper,1.4)+pathSVG('M-5 8H5V14L0 19L-5 14Z',C.paper,1,{fill:C.paper}),{class:'playhead'});
  }else if(index===2){
   content=group(pathSVG(curve,C.violet,3)+pathSVG('M0 80L48 80M116 0H164','#6c6089',1)+circle(48,80,3,C.violet)+circle(116,0,3,C.violet),{transform:'translate(28 20)'})+
-   text(234,39,'SCENE CAMERA',12,C.muted,{'letter-spacing':1.3})+text(234,69,'Orbit. Focus. Reveal.',24,C.paper,{'font-weight':600})+text(234,93,'Perspective + independent property curves',11,C.muted);
+   text(234,39,'SCENE CAMERA',12,C.muted,{'letter-spacing':1.3})+text(234,69,'Orbit. Focus.',24,C.paper,{'font-weight':600})+text(234,93,'Perspective + independent property curves',11,C.muted);
  }else{
-  content=text(22,37,'<rash-player',20,C.mint,{'font-family':'monospace'})+text(22,65,'  src="your-idea.rash.json"',15,C.paper,{'font-family':'monospace'})+text(22,89,'  controls autoplay loop />',15,C.muted,{'font-family':'monospace'})+
+  content=text(22,29,'<rash-player',19,C.mint,{'font-family':'monospace'})+text(22,53,'  src="your-idea.rash.json"',14,C.paper,{'font-family':'monospace'})+text(22,77,'  controls autoplay loop>',14,C.muted,{'font-family':'monospace'})+text(22,99,'</rash-player>',14,C.mint,{'font-family':'monospace'})+
    rect(338,24,134,62,'#172a2b',{rx:8,stroke:'#2a5249'})+text(405,51,'EMBED',14,C.mint,{'text-anchor':'middle','font-weight':700,'letter-spacing':2})+text(405,72,'YOUR WEBSITE',10,C.muted,{'text-anchor':'middle','letter-spacing':1});
  }
- return group(rect(0,0,500,112,'#0d1622',{rx:12,stroke:'#263443'})+content,{transform:'translate(48 452)'});
+ return group(rect(0,0,500,112,'#0d1622',{rx:12,stroke:'#263443'})+content,{transform:'translate(48 452)','data-panel':index});
 }
 
 function makeSVG(animated){

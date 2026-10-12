@@ -32,6 +32,7 @@ try{
   await sample(time);
   const visible=await page.locator('[data-chapter]').evaluateAll(es=>es.filter(e=>Number(getComputedStyle(e).opacity)>.95).map(e=>Number(e.dataset.chapter)));assert.deepEqual(visible,[index]);
   const overflow=await page.locator('text').evaluateAll(es=>es.filter(e=>{const r=e.getBBox();return r.x<0||r.y<0||r.x+r.width>1200.5||r.y+r.height>720.5}).map(e=>e.textContent));assert.deepEqual(overflow,[],'Every label must fit the viewBox');
+  const panelOverflow=await page.locator('[data-panel] text').evaluateAll(es=>es.filter(e=>{const r=e.getBBox();return r.x+r.width>490||r.y+r.height>107}).map(e=>e.textContent));assert.deepEqual(panelOverflow,[],'Labels must also fit their own panel');
   const screenshot=await page.screenshot({path:path.join(output,`chapter-${index+1}.png`)});snapshots.push(hash(screenshot));
  }assert.equal(new Set(snapshots).size,4);
  await sample(2);const geometryA=hash(await page.screenshot({clip:{x:765,y:250,width:160,height:160}}));await sample(3);
@@ -47,7 +48,8 @@ try{
  pass('README picture animates and selects a pixel stable poster for reduced motion');
  await page.emulateMedia({reducedMotion:'no-preference'});await page.goto(base+'header/rash-header.poster.svg');const poster=hash(await page.screenshot());await page.waitForTimeout(250);assert.equal(hash(await page.screenshot()),poster);assert.equal(await page.locator('animate,animateTransform,animateMotion,set').count(),0);
  pass('Static poster contains no SMIL and does not change pixels');
- await page.goto(base+'header/');await page.waitForFunction(()=>!document.querySelector('#toggle').disabled);
+ await page.route('**/header/preview.js',async route=>{await new Promise(resolve=>setTimeout(resolve,700));await route.continue();});
+ await page.goto(base+'header/');await page.waitForFunction(()=>!document.querySelector('#toggle').disabled);await page.unroute('**/header/preview.js');
  await page.getByRole('button',{name:'Pause animation',exact:true}).click();
  const time=()=>page.locator('#film').evaluate(o=>o.contentDocument.documentElement.getCurrentTime());
  const paused=await time();await page.waitForTimeout(250);assert.equal(await time(),paused);
@@ -59,9 +61,12 @@ try{
  await page.getByRole('button',{name:'Restart',exact:true}).click();assert.ok(await time()<1);
  const download=page.waitForEvent('download');await page.getByRole('link',{name:'Download SVG',exact:true}).click();assert.equal(hash(await fs.readFile(await(await download).path())),manifest.sha256);
  await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.getByRole('button',{name:'04 Publish',exact:true}).click();await page.screenshot({path:path.join(output,'phone.png'),fullPage:true});
- pass('Preview pause, resume, chapter navigation, restart, exact download and phone controls');
+ pass('Cached SVG initialization, pause, resume, chapter navigation, restart, exact download and phone controls');
  await page.emulateMedia({reducedMotion:'reduce'});await page.reload();await page.waitForFunction(()=>!document.querySelector('#toggle').disabled);assert.equal(await page.getByRole('button',{name:'Play animation',exact:true}).count(),1);
  const still=await time();await page.waitForTimeout(200);assert.equal(await time(),still);
+ await page.emulateMedia({reducedMotion:'no-preference'});await page.waitForTimeout(80);const preserved=await time();await page.waitForTimeout(200);assert.equal(await time(),preserved);
+ assert.ok(await page.locator('#film').evaluate(o=>o.contentDocument.getAnimations().every(a=>a.playState==='paused')),'Leaving reduced motion must preserve both animation clocks as paused');
+ await page.emulateMedia({reducedMotion:'reduce'});
  await page.getByRole('button',{name:'03 Direct in 3D',exact:true}).click();assert.ok(await time()>=11&&await time()<11.1);
  await page.getByRole('button',{name:'Play animation',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#film').contentDocument.documentElement.getCurrentTime()>11.1);
  assert.deepEqual(errors,[]);pass('Reduced motion starts paused and supports explicit opt in without page errors');

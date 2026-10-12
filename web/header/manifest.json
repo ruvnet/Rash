@@ -9,12 +9,12 @@
     "DIRECT IN 3D",
     "PUBLISH"
   ],
-  "svgBytes": 111469,
-  "gzipBytes": 18550,
-  "sha256": "129feff3eaeadb2bc86aa283f248fbc5b3737cc4aba9c1ab6774145f54d5a908",
-  "posterBytes": 29418,
+  "svgBytes": 111620,
+  "gzipBytes": 18577,
+  "sha256": "7754770fbdc1060708779b9572871f0ff61e75e08b890ace7c769bb6462acdb1",
+  "posterBytes": 29569,
   "sourceHashes": {
-    "scripts/generate-header.mjs": "fd4bcb98e0e5ab8be0f92a1f89de8cb0062a8069662af41534d4121d2e11a9ba",
+    "scripts/generate-header.mjs": "a716c1da2d12926dae611bc7ed87352b3c3edfa62321fca1c65c1c2c31b9a97a",
     "web/core/three-svg.js": "b46a8caed46a0029f15e20716361c31e23aa82f11727caeba182b36c1c2c27b1",
     "web/vendor/three-vector.js": "872a2955a4df0d57c09adefc9249cbd7e9acc179b51df2cf46d9f0a96b396f48"
   }
