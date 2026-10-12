@@ -19,6 +19,7 @@ const server = http.createServer(async (request, response) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
+const assets = process.env.RASH_TEST_URL ? process.env.RASH_TEST_URL.replace(/\/$/,'') : base;
 const host = http.createServer((request,response) => response.writeHead(200, {'Content-Type':'text/html'}).end('<!doctype html><title>Third-party embed host</title>'));
 await new Promise(resolve => host.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
@@ -26,12 +27,13 @@ try {
   const page = await browser.newPage(); const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${base}/test.html`);
-  const result = await page.evaluate(async () => {
-    const { createProject } = await import('/core/model.js');
-    const { exportProject, mp4Support } = await import('/export/export.js');
-    await import('/embed.js');
+  const result = await page.evaluate(async origin => {
+    const { createProject, addNode } = await import(`${origin}/core/model.js`);
+    const { exportProject, mp4Support } = await import(`${origin}/export/export.js`);
+    await import(`${origin}/embed.js`);
     const p = createProject('blank'); p.name = 'Export test'; p.width = 160; p.height = 96; p.fps = 10; p.duration = 5; p.script = '';
     p.nodes = [{ id: 'ball', type: 'ellipse', name: 'Ball', x: 0, y: 16, width: 24, height: 24, fill: '#ff6800', stroke: 'none', strokeWidth: 0, rotation: 0, opacity: 1, scale:1, visible: true, keyframes: [{ frame:0,x:0,easing:'linear' }, {frame:4,x:120,easing:'linear'}] }];
+    const mesh=addNode(p,'mesh');Object.assign(mesh,{x:70,y:20,width:45,height:45,primitive:'box',fill:'#00ff60',rotationX:22,rotationY:30,glow:1,keyframes:[{frame:0,rotationY:30,easing:'linear'},{frame:4,rotationY:160,easing:'linear'}]});
     const a = document.createElement('rash-player'), b = document.createElement('rash-player');
     a.setAttribute('controls',''); b.setAttribute('controls',''); document.body.append(a,b); a.project = p; b.project = p;
     a.seek(3); b.seek(1);
@@ -46,12 +48,15 @@ try {
     const svgText = new TextDecoder().decode(Uint8Array.from(exported.svg.bytes));
     const svgDocument = new DOMParser().parseFromString(svgText, 'image/svg+xml');
     const svgValid = !svgDocument.querySelector('parsererror');
+    const projected = !!svgDocument.querySelector('[data-mesh-frame]');
+    const png = new Blob([Uint8Array.from(exported.png.bytes)],{type:'image/png'}), bitmap=await createImageBitmap(png), canvas=document.createElement('canvas');canvas.width=160;canvas.height=96;const ctx=canvas.getContext('2d');ctx.drawImage(bitmap,0,0);bitmap.close();const pixels=ctx.getImageData(0,0,160,96).data;let greenPixels=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i+1]>pixels[i]*1.5&&pixels[i+1]>pixels[i+2]*1.5)greenPixels++;
     let mp4;
     if(mp4Support()) { const {blob} = await exportProject(p,'mp4'); mp4 = {size:blob.size,type:blob.type,bytes:Array.from(new Uint8Array(await blob.arrayBuffer()))}; }
     else { try { await exportProject(p,'mp4'); } catch(e) { mp4 = {unsupported:e.message}; } }
-    return { independent, retained, played, exported, svgValid, mp4 };
-  });
+    return { independent, retained, played, exported, svgValid, projected, greenPixels, mp4 };
+  },assets);
   assert.equal(result.independent,true); assert.equal(result.retained,true); assert.equal(result.played,true); assert.equal(result.svgValid,true);
+  assert.equal(result.projected,true);assert.ok(result.greenPixels>100,'PNG rasterization must contain the green projected mesh');
   const exportDir = '/tmp/rash-export-validation'; await fs.mkdir(exportDir,{recursive:true});
   for(const [format,output] of Object.entries(result.exported)) { assert.ok(output.size > 20,format); await fs.writeFile(`${exportDir}/scene.${format}`, Uint8Array.from(output.bytes)); }
   assert.equal(Buffer.from(result.exported.gif.bytes.slice(0,6)).toString(),'GIF89a');
@@ -59,27 +64,28 @@ try {
   if(result.mp4.bytes) { await fs.writeFile(`${exportDir}/scene.mp4`,Uint8Array.from(result.mp4.bytes)); assert.ok(Buffer.from(result.mp4.bytes.slice(0,32)).toString().includes('ftyp')); }
   else assert.match(result.mp4.unsupported,/MP4 recording is unavailable/);
   await page.emulateMedia({reducedMotion:'reduce'});
-  const reduced = await page.evaluate(async () => {
-    const { createProject } = await import('/core/model.js');
+  const reduced = await page.evaluate(async origin => {
+    const { createProject } = await import(`${origin}/core/model.js`);
     const p = createProject('blank'); p.script = '';
     const player = document.createElement('rash-player'); player.setAttribute('autoplay',''); document.body.append(player); player.project = p;
     await new Promise(r=>setTimeout(r,100)); return !player.playing;
-  });
+  },assets);
   assert.equal(reduced,true);
   await page.goto(`http://127.0.0.1:${host.address().port}/`);
   const crossOrigin = await page.evaluate(async origin => {
     await import(`${origin}/embed.js`);
-    const { createProject } = await import(`${origin}/core/model.js`);
-    const p=createProject('blank');p.script='trace("embed-ready");';
+    const { createProject,addNode } = await import(`${origin}/core/model.js`);
+    const p=createProject('blank'),mesh=addNode(p,'mesh');p.script=`getNode("${mesh.id}").rotationY = 73; getNode("${mesh.id}").glow = 4; trace("embed-ready");`;
     const player=document.createElement('rash-player');document.body.append(player);
     const result=new Promise(resolve=>{
       player.addEventListener('rash-script',e=>resolve({ok:true,logs:e.detail.logs}),{once:true});
       player.addEventListener('rash-warning',e=>resolve({ok:false,message:e.detail.message}),{once:true});
       setTimeout(()=>resolve({ok:false,message:'script event timed out'}),18000);
     });
-    player.project=p;return await result;
-  },base);
+    player.project=p;const event=await result;return {...event,node:player.project.nodes[0],faces:player.shadowRoot.querySelectorAll('[data-face-id]').length};
+  },assets);
   assert.equal(crossOrigin.ok,true,JSON.stringify(crossOrigin));
+  assert.equal(crossOrigin.node.rotationY,73);assert.equal(crossOrigin.node.glow,4);assert.ok(crossOrigin.faces>0);
   assert.equal(errors.length,0,errors.join('\n'));
-  console.log(JSON.stringify({checks:['independent players','retained SVG nodes','play/pause','reduced motion','SVG XML','GIF bytes','PDF bytes','PNG bytes','JSON','HTML','cross-origin WASM worker'],mp4:result.mp4.bytes?'verified':'unsupported with actionable error',artifacts:exportDir},null,2));
+  console.log(JSON.stringify({checks:['independent players','retained SVG nodes','play/pause','reduced motion','SVG XML','GIF bytes','PDF bytes','PNG bytes','JSON','HTML','cross-origin WASM worker with 3D/effect commands','projected mesh SVG','projected mesh raster pixels'],mp4:result.mp4.bytes?'verified':'unsupported with actionable error',artifacts:exportDir},null,2));
 } finally { await browser.close(); await new Promise(r=>server.close(r)); await new Promise(r=>host.close(r)); }

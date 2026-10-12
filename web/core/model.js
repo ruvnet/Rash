@@ -1,5 +1,11 @@
 export const MAX_NODES = 1000;
 export const MAX_TEXT_LINES_PER_NODE=256,MAX_TEXT_LINES=10000;
+export const MAX_MESHES=32,MAX_MESH_TRIANGLES=4096;
+export const MAX_EFFECT_LAYERS=64,MAX_EFFECT_AREA=16_000_000,MAX_SCENE_EFFECT_AREA=32_000_000;
+export const MESH_TRIANGLES=Object.freeze({box:12,sphere:168,torus:192,pyramid:6});
+export const ANIMATED_PROPERTIES=Object.freeze(['x','y','width','height','rotation','opacity','scale','rotationX','rotationY','z','blur','glow']);
+export const EASINGS=Object.freeze(['linear','easeIn','easeOut','easeInOut','step','bezier','bounce','elastic']);
+export const DEFAULT_CAMERA=Object.freeze({yaw:0,pitch:0,distance:800,fov:45});
 export const presets = [
   {id:'web', name:'Web · 16:9',width:1280,height:720},
   {id:'square',name:'Social square · 1:1',width:1080,height:1080},
@@ -10,6 +16,7 @@ export const presets = [
   {id:'classic',name:'Classic Flash',width:550,height:400}
 ];
 export const templates = [
+ {id:'dimension',name:'Beyond / 3D motion',description:'Rotating Three.js geometry, depth, soft glow and expressive motion typography.',tags:['3d','motion','cinematic']},
  {id:'orbit',name:'Orbital / Product story',description:'Cinematic vector rings, kinetic typography and an orbital motion study.',tags:['technology','product','motion']},
  {id:'launch',name:'Make some noise',description:'Bold launch title, geometric shapes and bright expressive motion.',tags:['social','launch','brand']},
  {id:'social',name:'Social signal',description:'A portrait story for your next big idea. Ready for reels and stories.',tags:['social','story','portrait']},
@@ -22,23 +29,65 @@ export const uid=()=>`n${Date.now().toString(36)}${(++sequence).toString(36)}`;
 const finite=(v,fallback=0,min=-100000,max=100000)=>typeof v==='number' && Number.isFinite(v)?Math.min(max,Math.max(min,v)):fallback;
 const str=(v,fallback='',max=1000)=>typeof v==='string'?v.slice(0,max):fallback;
 export const safeColor=(v,fallback='#ffffff')=>typeof v==='string' && /^(#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})|none|transparent|black|white|red|green|blue|yellow|cyan|magenta|orange|purple|gray|grey)$/i.test(v)?v:fallback;
-const easings=new Set(['linear','easeIn','easeOut','easeInOut','step']);
+const easings=new Set(EASINGS);
+const propertyBounds={opacity:[0,1],scale:[0.001,100],width:[1,10000],height:[1,10000],z:[-300,300],blur:[0,30],glow:[0,30]};
+const boundedProperty=(value,property,fallback=0)=>finite(value,fallback,...(propertyBounds[property]||[-100000,100000]));
+export function normalizeBezier(value){return Array.isArray(value)&&value.length===4?value.map((v,i)=>finite(v,i===0?.25:i===1?.1:i===2?.25:1,i%2?-2:0,i%2?3:1)):[.25,.1,.25,1];}
+export function normalizeCamera(camera={}){return {yaw:finite(camera?.yaw,0,-180,180),pitch:finite(camera?.pitch,0,-180,180),distance:finite(camera?.distance,800,500,2000),fov:finite(camera?.fov,45,20,90)};}
+export const hasNodeEffects=n=>n.blur>0||n.glow>0||(n.keyframes||[]).some(k=>k.blur>0||k.glow>0);
+// Bound every possible interpolated value, including expressive easing overshoot.
+function trackRange(node,property){
+ let low=node[property],high=low,previous=low;
+ for(const key of node.keyframes||[]){
+  if(!Number.isFinite(key[property]))continue;
+  let min=0,max=1;
+  if(key.easing==='bezier'){const curve=normalizeBezier(key.bezier);min=Math.min(0,curve[1],curve[3]);max=Math.max(1,curve[1],curve[3]);}
+  else if(key.easing==='elastic')max=1.4;
+  const values=[key[property],previous+(key[property]-previous)*min,previous+(key[property]-previous)*max].map(v=>boundedProperty(v,property,node[property]));
+  low=Math.min(low,...values);high=Math.max(high,...values);previous=key[property];
+ }
+ return [low,high];
+}
+/** Conservative local filter bounds shared by live and portable renderers. */
+export function filterSceneBounds(node,cameraOptions){
+ const camera=normalizeCamera(cameraOptions),padding=180;
+ const widthRange=trackRange(node,'width'),heightRange=trackRange(node,'height'),width=widthRange[1],height=heightRange[1];
+ let minX=0,minY=0,maxX=width,maxY=height;
+ if(node.type==='text'){
+  const lines=String(node.text).split(/\r?\n/);
+  maxX=Math.max(width,...lines.map(line=>line.length*node.fontSize*1.1));maxY=Math.max(height,lines.length*node.fontSize*1.2);
+ }else if(node.type==='mesh'){
+  const depth=Math.min(width,height),radius=['torus','sphere'].includes(node.primitive)?Math.max(width,height)/2:Math.hypot(width,height,depth)/2;
+  const zRange=trackRange(node,'z'),nearest=camera.distance-Math.max(...zRange.map(Math.abs))-radius;
+  if(nearest<=1)throw new Error('A filtered 3D layer intersects the camera safety region. Reduce its size or depth, move the camera back, or remove its effects.');
+  const projectedRadius=radius*800*Math.tan(Math.PI/8)/(Math.tan(camera.fov*Math.PI/360)*nearest);
+  // Camera orbit can shift a depth-offset object relative to the local center.
+  const offset=Math.max(...zRange.map(Math.abs))*800*Math.tan(Math.PI/8)/(Math.tan(camera.fov*Math.PI/360)*nearest);
+  minX=Math.min(0,widthRange[0]/2-projectedRadius-offset);minY=Math.min(0,heightRange[0]/2-projectedRadius-offset);
+  maxX=Math.max(width,width/2+projectedRadius+offset);maxY=Math.max(height,height/2+projectedRadius+offset);
+ }
+ return {x:minX-padding,y:minY-padding,width:maxX-minX+padding*2,height:maxY-minY+padding*2};
+}
 export function normalizeNode(n,i=0){
  if(!n || typeof n!=='object')throw new Error('Invalid scene node');
- const type=['rect','ellipse','text','path'].includes(n.type)?n.type:'rect';
+ const type=['rect','ellipse','text','path','mesh'].includes(n.type)?n.type:'rect';
  const node={id:str(n.id,`node${i}`,100).replace(/[^\w-]/g,'')||`node${i}`,name:str(n.name,'Layer',100),type,
  x:finite(n.x),y:finite(n.y),width:finite(n.width,160,1,10000),height:finite(n.height,100,1,10000),
  fill:safeColor(n.fill),stroke:safeColor(n.stroke,'none'),strokeWidth:finite(n.strokeWidth,0,0,100),
  rotation:finite(n.rotation),opacity:finite(n.opacity,1,0,1),scale:finite(n.scale,1,0.001,100),
+ rotationX:finite(n.rotationX),rotationY:finite(n.rotationY),z:finite(n.z,0,-300,300),blur:finite(n.blur,0,0,30),glow:finite(n.glow,0,0,30),blendMode:['normal','multiply','screen','overlay'].includes(n.blendMode)?n.blendMode:'normal',
  text:str(n.text,'Text',5000),fontSize:finite(n.fontSize,48,1,1000),fontWeight:finite(n.fontWeight,600,100,900),
  visible:n.visible!==false,locked:n.locked===true,rx:finite(n.rx,0,0,1000),
  d:str(n.d,'',50000).replace(/[^MmLlHhVvCcSsQqTtAaZz0-9., eE+\-]/g,''),keyframes:[]};
  if(type==='text'&&node.text.split('\n').length>MAX_TEXT_LINES_PER_NODE)throw new Error(`A text layer supports at most ${MAX_TEXT_LINES_PER_NODE} lines`);
  // Preserve source path geometry so editing W/H also scales actual vector output.
  if(type==='path'){node.pathWidth=finite(n.pathWidth,node.width,1,10000);node.pathHeight=finite(n.pathHeight,node.height,1,10000);}
+ if(type==='mesh'){node.primitive=Object.hasOwn(MESH_TRIANGLES,n.primitive)?n.primitive:'box';node.wireframe=n.wireframe===true;}
  if(Array.isArray(n.keyframes))node.keyframes=n.keyframes.slice(0,1000).map(k=>{
+  if(!k||typeof k!=='object')throw new Error('Invalid keyframe');
   const f={frame:Math.round(finite(k.frame,0,0,36000)),easing:easings.has(k.easing)?k.easing:'easeInOut'};
-  for(const p of ['x','y','width','height','rotation','opacity','scale'])if(k[p]!==undefined)f[p]=finite(k[p],node[p],p==='opacity'?0:p==='scale'?0.001:(p==='width'||p==='height')?1:-100000,p==='opacity'?1:p==='scale'?100:(p==='width'||p==='height')?10000:100000);
+  if(f.easing==='bezier')f.bezier=normalizeBezier(k.bezier);
+  for(const p of ANIMATED_PROPERTIES)if(k[p]!==undefined)f[p]=boundedProperty(k[p],p,node[p]);
   return f;
  }).sort((a,b)=>a.frame-b.frame).filter((k,i,a)=>!i||a[i-1].frame!==k.frame);
  return node;
@@ -48,25 +97,44 @@ export function validateProject(p){
  if(p.version!==1)throw new Error('Unsupported Rash project version');
  if(!Array.isArray(p.nodes)||p.nodes.length>MAX_NODES)throw new Error(`A scene supports at most ${MAX_NODES} layers`);
  if(p.nodes.reduce((sum,n)=>sum+(Array.isArray(n?.keyframes)?n.keyframes.length:0),0)>10000)throw new Error('A scene supports at most 10,000 keyframes');
- const out={version:1,id:str(p.id,uid(),100),name:str(p.name,'Untitled project',120),width:Math.round(finite(p.width,1280,16,4096)),height:Math.round(finite(p.height,720,16,4096)),fps:Math.round(finite(p.fps,30,1,120)),duration:Math.round(finite(p.duration,240,1,36000)),background:safeColor(p.background,'#111522'),nodes:p.nodes.map(normalizeNode),script:str(p.script,'',50000)};
+ const out={version:1,id:str(p.id,uid(),100),name:str(p.name,'Untitled project',120),width:Math.round(finite(p.width,1280,16,4096)),height:Math.round(finite(p.height,720,16,4096)),fps:Math.round(finite(p.fps,30,1,120)),duration:Math.round(finite(p.duration,240,1,36000)),background:safeColor(p.background,'#111522'),camera:normalizeCamera(p.camera),nodes:p.nodes.map(normalizeNode),script:str(p.script,'',50000)};
  if(new Set(out.nodes.map(n=>n.id)).size!==out.nodes.length)throw new Error('Layer IDs must be unique');
  if(out.nodes.reduce((sum,n)=>sum+(n.type==='text'?n.text.split('\n').length:0),0)>MAX_TEXT_LINES)throw new Error(`A scene supports at most ${MAX_TEXT_LINES} text lines`);
+ const meshes=out.nodes.filter(n=>n.type==='mesh');
+ if(meshes.length>MAX_MESHES)throw new Error(`A scene supports at most ${MAX_MESHES} 3D layers`);
+ if(meshes.reduce((sum,n)=>sum+MESH_TRIANGLES[n.primitive],0)>MAX_MESH_TRIANGLES)throw new Error(`A scene supports at most ${MAX_MESH_TRIANGLES} 3D triangles. Use fewer sphere or torus layers.`);
+ const effectNodes=out.nodes.filter(hasNodeEffects);
+ if(effectNodes.length>MAX_EFFECT_LAYERS)throw new Error(`A scene supports at most ${MAX_EFFECT_LAYERS} layers with blur or glow`);
+ let effectArea=0;
+ for(const node of effectNodes){const bounds=filterSceneBounds(node,out.camera),area=bounds.width*bounds.height;if(!Number.isFinite(area)||area>MAX_EFFECT_AREA)throw new Error(`Blur or glow on ${node.name} exceeds the 16 million pixel filter budget. Reduce its dimensions, text size, depth, or effects.`);effectArea+=area;}
+ if(effectArea>MAX_SCENE_EFFECT_AREA)throw new Error('Scene effects exceed the 32 million pixel filter budget. Reduce the number or size of filtered layers.');
  return out;
 }
 export const cloneProject=p=>structuredClone(p);
 export const serializeProject=p=>JSON.stringify(validateProject(p),null,2);
 export function parseProject(text){if(typeof text!=='string'||text.length>5_000_000)throw new Error('Project exceeds the 5 MB import limit');return validateProject(JSON.parse(text));}
-export function ease(t,kind='easeInOut'){
+export function ease(t,kind='easeInOut',bezier){
  t=Math.max(0,Math.min(1,t));
+ if(t===0||t===1)return kind==='step'?0:t;
+ if(kind==='bezier'){
+  const [x1,y1,x2,y2]=normalizeBezier(bezier);
+  const curve=(u,a,b)=>3*(1-u)*(1-u)*u*a+3*(1-u)*u*u*b+u*u*u;
+  let lo=0,hi=1,u=t;
+  // Bisection works even when the x derivative is zero at an endpoint.
+  for(let i=0;i<26;i++){u=(lo+hi)/2;if(curve(u,x1,x2)<t)lo=u;else hi=u;}
+  return curve(u,y1,y2);
+ }
+ if(kind==='bounce'){const a=7.5625,b=2.75;if(t<1/b)return a*t*t;if(t<2/b)return a*(t-=1.5/b)*t+.75;if(t<2.5/b)return a*(t-=2.25/b)*t+.9375;return a*(t-=2.625/b)*t+.984375;}
+ if(kind==='elastic')return 2**(-10*t)*Math.sin((t*10-.75)*(2*Math.PI/3))+1;
  return kind==='linear'?t:kind==='easeIn'?t*t:kind==='easeOut'?1-(1-t)*(1-t):kind==='step'?0:t*t*(3-2*t);
 }
 export function evaluateNode(node,frame){
  const n={...node}; const keys=node.keyframes||[];
- for(const prop of ['x','y','width','height','rotation','opacity','scale']){
+ for(const prop of ANIMATED_PROPERTIES){
   const relevant=keys.filter(k=>Number.isFinite(k[prop]));if(!relevant.length)continue;
   let previous={frame:0,[prop]:node[prop]};
   for(const next of relevant){
-   if(frame<next.frame){const t=ease((frame-previous.frame)/(next.frame-previous.frame),next.easing);n[prop]=previous[prop]+(next[prop]-previous[prop])*t;break;}
+   if(frame<next.frame){const t=ease((frame-previous.frame)/(next.frame-previous.frame),next.easing,next.bezier);n[prop]=boundedProperty(previous[prop]+(next[prop]-previous[prop])*t,prop,node[prop]);break;}
    previous=next;n[prop]=next[prop];
   }
  }
@@ -75,23 +143,38 @@ export function evaluateNode(node,frame){
 export const evaluateScene=(p,frame)=>p.nodes.map(n=>evaluateNode(n,Math.max(0,Math.min(p.duration-1,Number(frame)||0))));
 export function addNode(p,type='rect'){
  if(p.nodes.length>=MAX_NODES)throw new Error('Layer limit reached');
- const n=normalizeNode({id:uid(),name:`${type==='text'?'Text':type==='ellipse'?'Ellipse':type==='path'?'Path':'Rectangle'} ${p.nodes.length+1}`,type,x:p.width/2-100,y:p.height/2-60,width:200,height:120,fill:type==='text'?'#f7f6f2':'#ff6b35',rx:12,text:'Your next idea',fontSize:52});
+ if(type==='mesh'&&p.nodes.filter(n=>n.type==='mesh').length>=MAX_MESHES)throw new Error('3D layer limit reached');
+ if(type==='mesh'&&p.nodes.reduce((sum,n)=>sum+(n.type==='mesh'?(MESH_TRIANGLES[n.primitive]||12):0),0)+MESH_TRIANGLES.box>MAX_MESH_TRIANGLES)throw new Error('3D triangle limit reached');
+ const n=normalizeNode({id:uid(),name:`${type==='text'?'Text':type==='ellipse'?'Ellipse':type==='path'?'Path':type==='mesh'?'3D box':'Rectangle'} ${p.nodes.length+1}`,type,x:p.width/2-100,y:p.height/2-60,width:200,height:120,fill:type==='text'?'#f7f6f2':'#ff6b35',rx:12,text:'Your next idea',fontSize:52});
  p.nodes.push(n);return n;
 }
 export function addKeyframe(p,id,frame){
- const n=p.nodes.find(n=>n.id===id);if(!n)return;
+ const n=p.nodes.find(n=>n.id===id);if(!n||n.locked)return;
  const f=Math.round(Math.max(0,Math.min(p.duration-1,frame)));const current=evaluateNode(n,f);
  let k=n.keyframes.find(k=>k.frame===f);if(!k){k={frame:f,easing:'easeInOut'};n.keyframes.push(k);n.keyframes.sort((a,b)=>a.frame-b.frame);}
- for(const prop of ['x','y','width','height','rotation','opacity','scale'])k[prop]=current[prop];return k;
+ for(const prop of ANIMATED_PROPERTIES)k[prop]=current[prop];return k;
 }
 export function createProject(template='orbit',preset='web'){
  const size=presets.find(p=>p.id===preset)||presets[0];
- const p={version:1,...size,id:uid(),name:templates.find(t=>t.id===template)?.name.split(' / ')[0]||'Untitled',fps:30,duration:240,background:'#111522',nodes:[],script:'// RashScript: a bounded ActionScript-inspired runtime\ntrace("Hello, Rash.");\n'};
+ const p={version:1,...size,id:uid(),name:templates.find(t=>t.id===template)?.name.split(' / ')[0]||'Untitled',fps:30,duration:240,background:'#111522',camera:{...DEFAULT_CAMERA},nodes:[],script:'// RashScript: a bounded ActionScript-inspired runtime\ntrace("Hello, Rash.");\n'};
  const W=p.width,H=p.height,s=Math.min(W/1280,H/720);
  const node=(name,type,x,y,w,h,extra={})=>{const n=normalizeNode({id:uid(),name,type,x:x*W/1280,y:y*H/720,width:w*W/1280,height:h*H/720,...extra});p.nodes.push(n);return n;};
  const text=(name,txt,x,y,size,color='#f3f1ec')=>node(name,'text',x,y,1000,100,{text:txt,fontSize:size*s,fill:color,fontWeight:700});
  if(template==='blank'){p.name='Untitled project';p.background='#f8f7f4';return p;}
- if(template==='orbit'){
+ if(template==='dimension'){
+  p.background='#10131e';
+  text('Eyebrow','R A S H   /   BEYOND THE FLAT',76,62,15,'#98adae');
+  node('Horizon','rect',76,583,1128,1,{fill:'#344044'});
+  const ring=node('Orbital torus','mesh',742,118,400,400,{primitive:'torus',fill:'#7defd2',rotationX:28,rotationY:-28,glow:2});
+  ring.keyframes=[{frame:0,rotationX:28,rotationY:-28},{frame:120,rotationX:95,rotationY:152,easing:'linear'},{frame:239,rotationX:208,rotationY:332,easing:'linear'}];
+  const cube=node('Floating cube','mesh',961,411,120,120,{primitive:'box',fill:'#b198ff',rotationX:24,rotationY:35,z:45});
+  cube.keyframes=[{frame:0,y:cube.y,rotationY:35},{frame:120,y:cube.y-35*s,rotationY:215,easing:'easeInOut'},{frame:239,y:cube.y,rotationY:395,easing:'easeInOut'}];
+  const headline=text('Headline / Beyond','Beyond',73,189,110);headline.keyframes=[{frame:0,y:headline.y},{frame:70,y:headline.y-8*s,easing:'easeInOut'},{frame:239,y:headline.y,easing:'easeInOut'}];
+  text('Headline / dimensions','dimensions.',73,310,88,'#7defd2');
+  text('Description','Give your next idea a new perspective.',80,453,22,'#acb7c3');
+  text('Edition','REAL GEOMETRY. INFINITE EXPRESSION.',80,617,13,'#bfc8d0');
+  text('Format','THREE.JS  /  SVG  /  MOTION',889,617,12,'#7defd2');
+ } else if(template==='orbit'){
   text('Eyebrow','R A S H  /  MOTION STUDY 001',76,62,15,'#939ba9');
   for(let i=0;i<6;i++)node(`Orbital ring ${i+1}`,'ellipse',666+i*25,92+i*24,480-i*50,480-i*48,{fill:'none',stroke:i===0?'#535966':'#39404f',strokeWidth:1.2,rotation:-28+i*8});
   node('Horizontal meridian','ellipse',657,268,495,100,{fill:'none',stroke:'#5b6372',strokeWidth:1,rotation:-28});

@@ -53,7 +53,7 @@ For scripts loaded from cross origin embeds, the client creates a small blob wor
 | `trace()` | Implemented with bounded output |
 | `play`, `stop`, `gotoAndPlay`, `gotoAndStop` | Emit host commands; frame numbers follow Rash's frame convention, not legacy Flash's guaranteed 1-based convention |
 | Node lookup | Identifier matching name or ID, `this.name`, `_root.name`, `getNode("id")` |
-| Editable properties | x, y, width, height, rotation, opacity, uniform scale, visible, fill, text |
+| Editable properties | x, y, width, height, rotation, rotationX, rotationY, z, opacity, uniform scale, visible, fill, stroke, strokeWidth, fontSize, text, primitive, wireframe, blur, glow, blendMode |
 | AS2 aliases | `_x`, `_y`, `_width`, `_height`, `_rotation`, `_alpha`, `_visible`; `_alpha` uses 0 to 100 |
 | AS3 aliases | `alpha` maps to opacity |
 | `scaleX`, `scaleY` | Explicitly rejected until directional scale exists throughout renderer and player |
@@ -63,6 +63,8 @@ For scripts loaded from cross origin embeds, the client creates a small blob wor
 | Arrays, objects, closures, exceptions, events, display-list construction | Unsupported |
 | AS1/AS2/AS3 bytecode and SWF parsing | Not implemented in the SVG scripting engine; use separate Ruffle legacy player |
 | Flash multimedia APIs, networking, filesystem, ExternalInterface | Not exposed |
+
+The scene validator additionally bounds 3D geometry, camera and filter allocation after successful script execution. Primitive names, blend modes, colors and booleans use explicit allowlists. A scene validation failure discards every emitted edit. Camera properties are not exposed through node commands.
 
 This matrix is a capability contract, not a claim of ActionScript language conformance. Full compatibility requires an AVM implementation, Flash API coverage, display-list semantics and a large versioned content corpus. The optional Ruffle path supplies an established Rust implementation for that different use case.
 

@@ -827,7 +827,8 @@ impl Vm {
                     .unwrap_or(match prop {
                         "opacity" | "scale" => Value::Num(1.),
                         "visible" => Value::Bool(true),
-                        "x" | "y" | "rotation" | "width" | "height" => Value::Num(0.),
+                        "x" | "y" | "rotation" | "width" | "height" | "rotationX" | "rotationY"
+                        | "z" | "blur" | "glow" | "strokeWidth" => Value::Num(0.),
                         _ => Value::Null,
                     });
                 if p == "_alpha" {
@@ -874,21 +875,54 @@ impl Vm {
                 if let Value::Node(id) = v {
                     let prop = alias(p);
                     if ![
-                        "x", "y", "width", "height", "rotation", "opacity", "scale", "visible",
-                        "fill", "text",
+                        "x",
+                        "y",
+                        "width",
+                        "height",
+                        "rotation",
+                        "opacity",
+                        "scale",
+                        "visible",
+                        "fill",
+                        "text",
+                        "stroke",
+                        "strokeWidth",
+                        "fontSize",
+                        "rotationX",
+                        "rotationY",
+                        "z",
+                        "blur",
+                        "glow",
+                        "primitive",
+                        "wireframe",
+                        "blendMode",
                     ]
                     .contains(&prop)
                     {
                         return Err(format!("Node property '{p}' is read-only or unsupported"));
                     }
-                    if prop == "fill" || prop == "text" {
+                    if ["fill", "text", "stroke", "primitive", "blendMode"].contains(&prop) {
                         if !matches!(value, Value::Str(_)) {
                             return Err(format!("{prop} requires a string"));
                         }
-                        if prop == "fill" && !safe_color(&value.text()) {
-                            return Err("Fill must be a hex color or a supported color name".into());
+                        if ["fill", "stroke"].contains(&prop) && !safe_color(&value.text()) {
+                            return Err(
+                                "Color must be a hex color or a supported color name".into()
+                            );
                         }
-                    } else if prop == "visible" {
+                        if prop == "primitive"
+                            && !["box", "sphere", "torus", "pyramid"]
+                                .contains(&value.text().as_str())
+                        {
+                            return Err("Unsupported 3D primitive".into());
+                        }
+                        if prop == "blendMode"
+                            && !["normal", "multiply", "screen", "overlay"]
+                                .contains(&value.text().as_str())
+                        {
+                            return Err("Unsupported blend mode".into());
+                        }
+                    } else if prop == "visible" || prop == "wireframe" {
                         value = Value::Bool(value.truth());
                     } else {
                         let mut n = value.number()?;
@@ -1217,6 +1251,24 @@ mod tests {
             r.commands[1],
             json!({"type":"goto","frame":24.0,"play":true})
         );
+    }
+    #[test]
+    fn three_and_effect_properties_are_bounded_scene_commands() {
+        let r=execute("hero.rotationX=25; hero.rotationY+=90; hero.z=40; hero.blur=4; hero.glow=8; hero.primitive='torus'; hero.wireframe=true; hero.blendMode='screen'; hero.stroke='#4488ff'; hero.strokeWidth=2; hero.fontSize=64;");
+        assert_eq!(r.commands.len(), 11);
+        assert_eq!(r.commands[1]["value"], json!(90.0));
+        assert_eq!(r.commands[5]["value"], json!("torus"));
+        assert_eq!(r.commands[6]["value"], json!(true));
+        for source in [
+            "hero.primitive='url(evil)';",
+            "hero.blendMode='url(evil)';",
+            "hero.stroke='url(evil)';",
+            "hero.rotationX=100000000;",
+        ] {
+            let result = run(source, ctx());
+            assert!(result.error.is_some());
+            assert!(result.commands.is_empty());
+        }
     }
     #[test]
     fn injection_not_executable() {

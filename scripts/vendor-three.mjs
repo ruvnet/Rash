@@ -1,0 +1,16 @@
+import {build} from 'esbuild';
+import fs from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {gzipSync} from 'node:zlib';
+const pkg=JSON.parse(await fs.readFile('node_modules/three/package.json','utf8'));
+const builder=JSON.parse(await fs.readFile('node_modules/esbuild/package.json','utf8'));
+if(pkg.version!=='0.186.1'||builder.version!=='0.28.2')throw Error('Three.js build dependencies must match the pinned versions');
+await fs.mkdir('web/vendor/three',{recursive:true});
+await build({entryPoints:['scripts/three-entry.js'],outfile:'web/vendor/three-vector.js',bundle:true,minify:true,format:'esm',target:'es2022',legalComments:'inline',platform:'browser',charset:'utf8'});
+const bytes=await fs.readFile('web/vendor/three-vector.js');
+if(bytes.length>250000||gzipSync(bytes).length>70000)throw Error('Three vector bundle exceeds its delivery budget');
+await fs.copyFile('node_modules/three/LICENSE','web/vendor/three/LICENSE');
+const lock=JSON.parse(await fs.readFile('package-lock.json','utf8'));
+const record={package:'three',version:pkg.version,license:'MIT',source:'https://github.com/mrdoob/three.js',npmIntegrity:lock.packages['node_modules/three'].integrity,esbuild:builder.version,entry:'scripts/three-entry.js',bytes:bytes.length,gzipBytes:gzipSync(bytes).length,sha256:createHash('sha256').update(bytes).digest('hex')};
+await fs.writeFile('web/vendor/three/provenance.json',JSON.stringify(record,null,2)+'\n');
+console.log(`Three.js ${pkg.version}: ${record.bytes} bytes, ${record.gzipBytes} bytes gzip, SHA256 ${record.sha256}`);

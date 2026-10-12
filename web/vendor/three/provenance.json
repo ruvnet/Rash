@@ -1,0 +1,12 @@
+{
+  "package": "three",
+  "version": "0.186.1",
+  "license": "MIT",
+  "source": "https://github.com/mrdoob/three.js",
+  "npmIntegrity": "sha512-blFeqb49wRCSGUGj7gtpfnSGHy2lwDk94RhUmS1c/hTby70kvChbWpkJ4Pm1390LqzzvTmzgXKHPEafJwCb8jA==",
+  "esbuild": "0.28.2",
+  "entry": "scripts/three-entry.js",
+  "bytes": 86239,
+  "gzipBytes": 25323,
+  "sha256": "872a2955a4df0d57c09adefc9249cbd7e9acc179b51df2cf46d9f0a96b396f48"
+}

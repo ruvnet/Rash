@@ -6,15 +6,16 @@ This document describes the current source, with precise limits. Release accepta
 
 | Area | Current implementation | Limit or missing feature |
 | --- | --- | --- |
-| Stage | Retained SVG rectangles, ellipses, text and paths | No general SVG import, arbitrary filters, masks, bitmap fills or 3D renderer |
-| Timeline | Numeric transform keyframes, easing, playback and frame sampling | No Flash shape tween, nested MovieClip timeline or frame event graph |
+| Stage | Retained SVG vectors, Three.js projected box/sphere/torus/pyramid layers, blur/glow and four blend modes | No general SVG import, masks, textures, shaders or arbitrary filters; 3D objects use SVG layer order rather than shared depth |
+| Timeline | Numeric transform/effect keyframes, editable presets, stagger, Bezier graph, bounce/elastic easing, playback and frame sampling | No AEP import, expressions, Flash shape tween, nested composition or frame event graph; easing is shared by properties on a key |
+| Camera | Shared orbit, distance and field of view for projected objects | Composition setting, not a keyframed camera track; no WebGL depth buffer |
 | Document | Version 1 project JSON; web, social, story, HD, A4 and classic presets | Up to 1,000 nodes; project size and field bounds apply |
 | Scripting | Rust source parser and interpreter in a dedicated worker | RashScript subset; not a full ActionScript compiler or AVM |
 | Variables | Numbers, strings, booleans, null, declarations and accepted type annotations | Annotations do not implement AS3's type system; no object/class model |
 | Control flow | If/else, for, while, break, continue, arithmetic and comparisons | No user functions, classes, packages, imports, exceptions or switch |
 | Scene commands | Allowlisted property writes, timeline commands, trace, selected Math functions | No DOM, network, filesystem, eval, dynamic code or Flash API imports |
 | Legacy content | Optional self hosted Ruffle 0.7.1 SWF player, isolated from the studio | Upstream AVM1/AVM2 compatibility limits; no FLA import or SWF editing; network, storage and ExternalInterface disabled |
-| SVG export | Animated SVG from sampled supported numeric tracks | No project scripts in exported SVG; output size budget applies |
+| SVG export | Animated numeric tracks, projected 3D frame groups and native filter animation | No project scripts; 16 MB output, 200,000 source triangle frames, 500,000 layer frames and 5 million evaluation work budget |
 | HTML export | Standalone HTML with animated SVG | Timeline animation only; not a full project runtime |
 | JavaScript embed | Custom element using hosted assets | Host CSP, HTTPS/CORS and worker support must allow the asset path |
 | GIF export | Browser rasterization and local GIF encoder | 640 px longest edge, at most 120 sampled frames, at most 60 seconds; no audio |
@@ -38,6 +39,8 @@ Project duration and timeline seek values are frame counts. A 240-frame project 
 ## Export boundary
 
 SVG, HTML, GIF, PNG, MP4 and PDF exports render timeline state. They do not replay arbitrary project scripts or game input while rendering. Browser export capability may vary by OS, codec, resource budget and content. The application must never rename WebM output to MP4.
+
+3D meshes are capped at 32 objects and 4,096 source triangles. Filters are capped at 64 layers, 16 million scene units squared per layer and 32 million total. Conservative animated bounds reject risky camera/geometry combinations before editing or export. Oversized manipulations roll back the entire gesture. These bounds are resource controls, not a physical-device frame rate guarantee.
 
 ## Validation
 
