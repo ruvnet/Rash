@@ -52,10 +52,10 @@ try{
     await newProject();await command('Add rectangle');rectId=(await project()).nodes[0].id;
     await tap(page.getByRole('tab',{name:'Motion',exact:true}));await setInput('Current frame',1);await tap(page.getByRole('button',{name:'Add keyframe here',exact:true}));
     await setInput('Current frame',31);await tap(page.getByRole('button',{name:'Add keyframe here',exact:true}));
-    await setInput('Playback frames per second',60);
+    const fpsInput=page.getByLabel('Playback frames per second',{exact:true});await tap(fpsInput);await fpsInput.fill('');await fpsInput.pressSequentially('60');assert.equal(await fpsInput.inputValue(),'60');assert.equal((await project()).fps,60,'Typing must update the document without waiting for blur');await page.locator('#right-panel .property-tabs').tap({position:{x:7,y:7}});
     let p=await project();assert.equal(p.fps,60);assert.equal(p.duration,480);assert.deepEqual(p.nodes[0].keyframes.map(k=>k.frame),[0,60]);
     await page.getByLabel('Frames per second',{exact:true}).selectOption('24');
-    p=await project();assert.equal(p.fps,24);assert.equal(p.duration,192);assert.deepEqual(p.nodes[0].keyframes.map(k=>k.frame),[0,24]);
+    p=await project();assert.equal(p.fps,24);assert.equal(p.duration,192);assert.deepEqual(p.nodes[0].keyframes.map(k=>k.frame),[0,24]);await command('Undo');assert.equal((await project()).fps,60);await command('Undo');assert.equal((await project()).fps,30);assert.deepEqual((await project()).nodes[0].keyframes.map(k=>k.frame),[0,30]);await command('Redo');assert.equal((await project()).fps,60);await command('Redo');assert.equal((await project()).fps,24);
   });
   await check('path width and height edits resize rendered geometry',async()=>{
     await newProject();await tap(page.getByRole('tab',{name:'Library',exact:true}));await tap(page.getByRole('button',{name:'Add Curve',exact:true}));

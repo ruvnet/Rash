@@ -30,7 +30,7 @@ Additional integration gaps at the baseline were missing embedded collector game
 
 ## Followup implementation and measured coverage
 
-The v0.1.1 candidate passed 28 Chromium mobile workflow checks, ten Chromium workflow regression checks, the original 19 UI checks, 35 JavaScript unit tests, and the export and embedded game suites during integration. These counts describe the named checks in the repository; they are not a percentage of original Flash requirements. Publication and browser evidence for the deployed revision remain separate gates.
+The v0.1.1 candidate passed 28 Chromium mobile workflow checks, eleven Chromium workflow regression checks, the original 19 UI checks, 35 JavaScript unit tests, and the export and embedded game suites during integration. These counts describe the named checks in the repository; they are not a percentage of original Flash requirements. Publication and browser evidence for the deployed revision remain separate gates.
 
 | Finding | Candidate implementation | Evidence and explicit limit |
 | :--- | :--- | :--- |
@@ -46,7 +46,7 @@ The v0.1.1 candidate passed 28 Chromium mobile workflow checks, ten Chromium wor
 | UI11 | New composition explains single project storage, offers a current project download, and asks before replacing existing work | Mobile suite checks wizard cancellation preserves work. This is still one current autosave, not a cloud or multi project library. |
 | Embedded game | Player uses a separate game scene and binds keyboard and touch movement, pause and restart | `tests/embed-game-browser.mjs` checks movement, pause, restart, independent instances, immutable source and no browser errors. Media exports remain timeline snapshots and do not replay game input. |
 
-The final diff review also identified and corrected multiline text DOM amplification. A 3,935,161 byte project with 400 text nodes could expand into 1,960,400 SVG text spans. Validation now rejects more than 256 lines per text layer or 10,000 aggregate text lines. The adversarial import and aggregate limit regression tests pass; the hostile scene was never rendered. A workflow test also verifies that a rejected multiline edit leaves the valid scene unchanged and displays an error. Schema rejection must occur before any rendering of script commands as well as before commit.
+The final diff review also identified and corrected multiline text DOM amplification. A 3,935,161 byte project with 400 text nodes could expand into 1,960,400 SVG text spans. Validation now rejects more than 256 lines per text layer or 10,000 aggregate text lines. The adversarial import and aggregate limit regression tests pass; the hostile scene was never rendered. A workflow test verifies that a rejected multiline edit leaves the valid scene unchanged and displays an error. Editor and embed scripts stage changes on a separate candidate, validate the complete scene, then execute timeline controls. An actual WASM regression sets oversized text and calls `gotoAndStop`; a DOM observer confirms no rejected text expansion is rendered. Independent final review reran all eleven workflow checks successfully.
 
 ## Capability matrix
 
