@@ -24,8 +24,12 @@ jobs:
       - run: cargo test --locked
       - run: npm run build:wasm
       - run: npm test
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:ui
+      - run: npm run test:mobile
+      - run: npm run test:workflows
+      - run: RASH_BROWSER=webkit npm run test:workflows
+      - run: npm run test:embed-game
       - run: node tests/exports-browser.mjs
       - run: node tests/runtime-browser.mjs
       - run: npm run build

@@ -1,11 +1,11 @@
 import { validateProject, evaluateNode } from '../core/model.js';
-import { sceneToSVG, nodeAttributes } from '../core/renderer.js';
+import { sceneToSVG, nodeAttributes, textMarkup } from '../core/renderer.js';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
 const num = n => Math.round(n * 1000) / 1000;
 const attrs = o => Object.entries(o).map(([k, v]) => ` ${k}="${esc(v)}"`).join('');
 export function animatedSVG(input) {
   const p = validateProject(input);
-  const staticBytes = p.nodes.reduce((sum, n) => sum + (n.text?.length || 0) * 6 + (n.d?.length || 0) + 1000, 0);
+  const staticBytes = p.nodes.reduce((sum, n) => sum + (n.text?.length || 0) * 6 + (n.text?.split('\n').length || 0) * 40 + (n.d?.length || 0) + 1000, 0);
   if (staticBytes > 16_000_000) throw new Error('SVG scene exceeds the 16 MB output budget. Reduce scene complexity.');
   if (!p.nodes.some(n => n.keyframes.length)) return sceneToSVG(p, 0);
   const moving = p.nodes.filter(n => n.keyframes.length).length;
@@ -26,8 +26,8 @@ export function animatedSVG(input) {
     const initial = samples[0];
     const tag = node.type === 'ellipse' ? 'ellipse' : node.type === 'text' ? 'text' : node.type === 'path' ? 'path' : 'rect';
     const shapeAttrs = nodeAttributes(initial);
-    const shapeAnimations = Object.keys(shapeAttrs).map(key => animate(samples.map(n => String(nodeAttributes(n)[key])), key)).join('');
-    let body = `<${tag}${attrs(shapeAttrs)}>${node.type === 'text' ? esc(node.text) : ''}${shapeAnimations}</${tag}>`;
+    const shapeAnimations = Object.keys(shapeAttrs).filter(key=>key!=='transform').map(key => animate(samples.map(n => String(nodeAttributes(n)[key])), key)).join('') + (node.type==='path'?animate(samples.map(n=>`${num(n.width/(n.pathWidth||n.width))} ${num(n.height/(n.pathHeight||n.height))}`),'transform','scale'):'');
+    let body = `<${tag}${attrs(shapeAttrs)}>${node.type === 'text' ? textMarkup(node.text) : ''}${shapeAnimations}</${tag}>`;
     const wraps = [
       ['translate', n => `${num(n.x)} ${num(n.y)}`],
       ['rotate', n => `${num(n.rotation)} ${num(n.width / 2)} ${num(n.height / 2)}`],
