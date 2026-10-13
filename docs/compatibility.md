@@ -26,7 +26,7 @@ This document describes the current source, with precise limits. Release accepta
 | Game template | A small interactive collection game | Not a complete physics or general Flash game engine |
 | Template search | Real optional RuVector WASM cosine search, local fallback | Deterministic hashed lexical vectors; not learned semantic embeddings |
 | MetaHarness | Pinned optional static repository scorecard plus independent local tests | No autonomous evolution or demonstrated self learning |
-| Persistence | Browser autosave, JSON backup, local MCP filesystem storage and private hosted MCP project storage | Authenticated Studio uses the hosted MCP store through explicit revision checked saves; public browser and local stdio stores remain separate |
+| Persistence | Browser autosave, JSON backup, local MCP filesystem storage and private hosted MCP project storage | Authenticated Studio uses the hosted MCP store through explicit revision checked saves; successful cloud opens return focus to the composition title; public browser and local stdio stores remain separate |
 | Cloudflare | Hosted MCP Worker with R2 storage scoped to verified Sites identity | Requires the trusted Sites authentication gateway; do not expose the Worker directly with caller supplied identity headers |
 | Claude package | Local stdio MCP server, seven tools, project resources and authoring skills | Host installation and interactive view require separate acceptance; local and cloud stores are separate |
 | MCP App | Self contained SVG view with playback, editing and exports | Browser bridge tests do not prove ChatGPT or Claude host acceptance |
