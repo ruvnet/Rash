@@ -28,11 +28,15 @@ jobs:
       - run: git diff --exit-code -- web/examples
       - run: npm run header:generate
       - run: git diff --exit-code -- web/header
+      - run: npm run readme:generate
+      - run: git diff --exit-code -- docs/animations
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:examples
       - run: RASH_BROWSER=webkit npm run test:examples
       - run: npm run test:header
       - run: RASH_BROWSER=webkit npm run test:header
+      - run: npm run test:readme-art
+      - run: RASH_BROWSER=webkit npm run test:readme-art
       - run: npm run test:ui
       - run: npm run test:mobile
       - run: npm run test:workflows

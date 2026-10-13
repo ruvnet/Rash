@@ -25,7 +25,9 @@
     "examples:generate": "node scripts/generate-examples.mjs",
     "test:examples": "node tests/examples-browser.mjs",
     "header:generate": "node scripts/generate-header.mjs",
-    "test:header": "node tests/header-browser.mjs"
+    "test:header": "node tests/header-browser.mjs",
+    "readme:generate": "node scripts/generate-readme-art.mjs",
+    "test:readme-art": "node tests/readme-art-browser.mjs"
   },
   "engines": {
     "node": ">=22"

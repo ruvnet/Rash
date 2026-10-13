@@ -1,0 +1,75 @@
+{
+  "kind": "editorial-workflow-illustrations",
+  "width": 960,
+  "height": 400,
+  "source": "scripts/generate-readme-art.mjs",
+  "sourceSha256": "b596745053fbe66b9218816a0839cfb640eea4b267605d5d08ffd0de73689140",
+  "panels": [
+    {
+      "id": "authoring",
+      "description": "A selected vector moves across a stage as the timeline playhead travels between keyframes.",
+      "animation": {
+        "file": "authoring.svg",
+        "bytes": 5370,
+        "gzipBytes": 1707,
+        "sha256": "1ae5b30c50cd24384a386f9b5943975d1af8e883429fe424b4c54fcdf212a00a"
+      },
+      "poster": {
+        "file": "authoring.poster.svg",
+        "bytes": 5397,
+        "gzipBytes": 1709,
+        "sha256": "b256e9175e9bd98fef2a83e8421bafb866f0ee10c03fb3f72d7d1f1c0d36da55"
+      }
+    },
+    {
+      "id": "exports",
+      "description": "A composition flows to SVG, GIF, HTML and browser supported MP4 animation, PNG and raster PDF stills, and editable project JSON.",
+      "animation": {
+        "file": "exports.svg",
+        "bytes": 6371,
+        "gzipBytes": 1730,
+        "sha256": "a1a319fc1afed1cc089004e612e84bb1725cce5359e8d87da05ac323d14c05de"
+      },
+      "poster": {
+        "file": "exports.poster.svg",
+        "bytes": 6398,
+        "gzipBytes": 1731,
+        "sha256": "30d8616e58a4cac0769ec48922c8ed8304cc9a9553f8cbd33447072ecbd10ecf"
+      }
+    },
+    {
+      "id": "embeds",
+      "description": "Desktop and phone players show the same composition with independent playback clocks and responsive frames.",
+      "animation": {
+        "file": "embeds.svg",
+        "bytes": 5383,
+        "gzipBytes": 1836,
+        "sha256": "3a73784d103d2233f273c72421ac72c610c85f2de1a9dd387e30efdcd2456cb8"
+      },
+      "poster": {
+        "file": "embeds.poster.svg",
+        "bytes": 5410,
+        "gzipBytes": 1838,
+        "sha256": "3e7e2e3baaf6a76e08d4aa64161084d86dfa7c8cadc332f5c514b3a76b8790f4"
+      }
+    },
+    {
+      "id": "runtime",
+      "description": "ActionScript inspired source passes through a dedicated Rust and WASM worker; validated scene commands move an SVG node.",
+      "animation": {
+        "file": "runtime.svg",
+        "bytes": 4393,
+        "gzipBytes": 1633,
+        "sha256": "eba7201696215dae7326d96cf0069c3807d93b85f308643132c93a8527b9fdf0"
+      },
+      "poster": {
+        "file": "runtime.poster.svg",
+        "bytes": 4420,
+        "gzipBytes": 1635,
+        "sha256": "ff46627cc77169dc770c6e2461ca75a20b20867f7a9f6519e05a405be27edb42"
+      }
+    }
+  ],
+  "totalAnimatedBytes": 21517,
+  "totalAnimatedGzipBytes": 6906
+}
