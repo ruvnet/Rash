@@ -106,7 +106,19 @@ npm run test:examples
 
 ## Create and publish
 
+<a href="https://ruvnet.github.io/Rash/">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/animations/authoring.poster.svg">
+    <img src="docs/animations/authoring.svg" alt="Rash authoring: a selected vector animates across the stage while a timeline playhead moves between keyframes." width="960">
+  </picture>
+</a>
+
+<details>
+<summary>View the actual editor</summary>
+
 ![Rash Studio desktop](docs/assets/studio-desktop.png)
+
+</details>
 
 1. Open [Rash Studio](https://ruvnet.github.io/Rash/).
 2. Pick a template or create a composition in web, social, story, banner, HD, A4 or classic Flash dimensions.
@@ -127,7 +139,16 @@ npm run test:examples
 | Embedding | Independent `<rash-player>` instances, shadow DOM styles, responsive layout, controls, reduced motion |
 | Developer tools | Claude plugin manifest, marketplace, author/verify skills, MetaHarness evidence script |
 
+<a href="https://ruvnet.github.io/Rash/">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/animations/exports.poster.svg">
+    <img src="docs/animations/exports.svg" alt="Rash exports: SVG, GIF, HTML and supported MP4 animation; PNG and raster PDF stills; editable project JSON." width="960">
+  </picture>
+</a>
+
 GIF is capped at 640 pixels and 120 sampled frames. MP4 is a real time browser recording, capped at 1920 pixels and 60 seconds; unsupported browsers report an explicit error. PDF exports frame zero as a raster image. These limits keep the static application bounded and honest.
+
+The four workflow illustrations in this README explain authoring, exports, embeds and scripting. They are editorial SVG artwork, separate from the six editable system exports above. Together they add **21.5 KB** of animated SVG, or **6.9 KB** summed gzip. Each selects a static poster when reduced motion is requested. [View all posters and the size manifest](docs/animations/) · [Reproduce the artwork](scripts/generate-readme-art.mjs) with `npm run readme:generate`; verify with `npm run test:readme-art`.
 
 ### 3D and motion design
 
@@ -193,6 +214,13 @@ npm run build
 
 ## Embed anywhere
 
+<a href="docs/embed.md">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/animations/embeds.poster.svg">
+    <img src="docs/animations/embeds.svg" alt="Rash embeds: desktop and phone players animate independently inside responsive frames." width="960">
+  </picture>
+</a>
+
 Export a project as `scene.rash.json`, host it on your site, and use:
 
 ```html
@@ -204,6 +232,13 @@ Export a project as `scene.rash.json`, host it on your site, and use:
 The editor also generates an embed with inline, safely encoded project data. CORS and your site's content security policy must permit the hosted player and any fetched scene. See [embedding](docs/embed.md).
 
 ## Write a script
+
+<a href="docs/compatibility.md">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/animations/runtime.poster.svg">
+    <img src="docs/animations/runtime.svg" alt="Rash scripting: bounded ActionScript inspired source runs in a Rust and WASM worker, then validated commands update the SVG stage." width="960">
+  </picture>
+</a>
 
 ```actionscript
 var total:Number = 0;
