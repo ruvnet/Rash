@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createProject } from '../web/core/model.js';
+import { createProject, setLayerExposure } from '../web/core/model.js';
 import { exportProject, embedCode, mp4Support } from '../web/export/export.js';
 import { GIFEncoder, lzwEncode, quantizeRGBA } from '../web/export/gif.js';
 import { createImagePDF } from '../web/export/pdf.js';
@@ -47,6 +47,11 @@ test('JSON and animated SVG exports are valid and escaped', async () => {
   assert.ok(svg.includes('<animateTransform')); assert.ok(svg.includes('repeatCount="indefinite"'));
   assert.ok(svg.includes('&lt;image onload=&quot;evil()&quot;&gt;'));
   assert.ok(!svg.includes('<script>')); assert.ok(!svg.includes('<image'));
+});
+test('animated SVG exports preserve blank and exposed keyframe holds', async () => {
+  const p=createProject('orbit');p.duration=6;const node=p.nodes[0];setLayerExposure(p,node.id,1,false);setLayerExposure(p,node.id,4,true);
+  const svg=await (await exportProject(p,'svg')).blob.text(),group=svg.match(new RegExp(`<g data-node-id="${node.id}"[^>]*>([\\s\\S]*?)<\\/g>`))?.[0]||'';
+  assert.match(group,/display="inline"/);assert.match(group,/attributeName="display"/);assert.match(group,/values="inline;none;none;none;inline;inline;inline"/);
 });
 test('embed snippets cannot break out of inline JSON and reject unsafe script URLs', () => {
   const p = createProject('blank'); p.script = '</script><script>alert(1)</script>\u2028';

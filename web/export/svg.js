@@ -82,7 +82,8 @@ export function animatedSVG(input) {
       ['translate', n => `${num(-n.width / 2)} ${num(-n.height / 2)}`]
     ];
     for (const [type, value] of wraps.reverse()) body = `<g transform="${type}(${value(initial)})">${animate(samples.map(value), 'transform', type)}${body}</g>`;
-    return `<g data-node-id="${esc(node.id)}" opacity="${initial.opacity}" style="${groupStyle(node)}">${animate(samples.map(n => String(num(n.opacity))), 'opacity')}${body}</g>`;
+    const displayAnimation=animate(samples.map(n=>n.visible?'inline':'none'),'display'),displayAttribute=displayAnimation||!initial.visible?` display="${initial.visible?'inline':'none'}"`:'';
+    return `<g data-node-id="${esc(node.id)}" opacity="${initial.opacity}"${displayAttribute} style="${groupStyle(node)}">${displayAnimation}${animate(samples.map(n => String(num(n.opacity))), 'opacity')}${body}</g>`;
   };
   const content=p.nodes.map(nodeSVG).join('');
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}" role="img" aria-label="${esc(p.name)}"><title>${esc(p.name)}</title>${effects?`<defs>${effects}</defs>`:''}<rect width="100%" height="100%" fill="${esc(p.background)}"/>${content}</svg>`;
@@ -165,7 +166,8 @@ function animatedSymbolSVG(p){
     }
     const wraps=[['translate',n=>`${num(n.x)} ${num(n.y)}`],['rotate',n=>`${num(n.rotation)} ${num(n.width/2)} ${num(n.height/2)}`],['translate',n=>`${num(n.width/2)} ${num(n.height/2)}`],['scale',n=>`${num(n.scale??1)}`],['translate',n=>`${num(-n.width/2)} ${num(-n.height/2)}`]];
     for(const [type,value]of wraps.reverse())body=`<g transform="${type}(${value(initial)})">${animate(samples.map(value),'transform',type)}${body}</g>`;
-    return `<g data-node-id="${esc(node.id)}" data-instance-path="${esc(path.join('/'))}" opacity="${initial.opacity}" style="${groupStyle(node)}">${animate(samples.map(n=>String(num(n.opacity))),'opacity')}${body}</g>`;
+    const displayAnimation=animate(samples.map(n=>n.visible?'inline':'none'),'display'),displayAttribute=displayAnimation||!initial.visible?` display="${initial.visible?'inline':'none'}"`:'';
+    return `<g data-node-id="${esc(node.id)}" data-instance-path="${esc(path.join('/'))}" opacity="${initial.opacity}"${displayAttribute} style="${groupStyle(node)}">${displayAnimation}${animate(samples.map(n=>String(num(n.opacity))),'opacity')}${body}</g>`;
   }
   const content=roots.map(nodeSVG).join('');
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}" role="img" aria-label="${esc(p.name)}"><title>${esc(p.name)}</title>${effects?`<defs>${effects}</defs>`:''}<rect width="100%" height="100%" fill="${esc(p.background)}"/>${content}</svg>`;

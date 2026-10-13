@@ -161,6 +161,7 @@ export function normalizeNode(n,i=0){
  if(Array.isArray(n.keyframes))node.keyframes=n.keyframes.slice(0,1000).map(k=>{
   if(!k||typeof k!=='object')throw new Error('Invalid keyframe');
   const f={frame:Math.round(finite(k.frame,0,0,36000)),easing:easings.has(k.easing)?k.easing:'easeInOut'};
+  if(typeof k.blank==='boolean')f.blank=k.blank;
   if(f.easing==='bezier')f.bezier=normalizeBezier(k.bezier);
   for(const p of ANIMATED_PROPERTIES)if(k[p]!==undefined)f[p]=boundedProperty(k[p],p,node[p]);
   if(k.curves&&typeof k.curves==='object'&&!Array.isArray(k.curves)){
@@ -334,6 +335,9 @@ export function evaluateNode(node,frame){
    previous=next;n[prop]=next[prop];
   }
  }
+ let exposed=true;
+ for(const key of keys){if(key.frame>frame)break;if(typeof key.blank==='boolean')exposed=!key.blank;}
+ n.visible=node.visible!==false&&exposed;
  return n;
 }
 export const evaluateScene=(p,frame)=>p.nodes.map(n=>evaluateNode(n,Math.max(0,Math.min(p.duration-1,Number(frame)||0))));
@@ -373,7 +377,20 @@ export function addKeyframe(p,id,frame){
  const n=p.nodes.find(n=>n.id===id);if(!n||n.locked)return;
  const f=Math.round(Math.max(0,Math.min(p.duration-1,frame)));const current=evaluateNode(n,f);
  let k=n.keyframes.find(k=>k.frame===f);if(!k){k={frame:f,easing:'easeInOut'};n.keyframes.push(k);n.keyframes.sort((a,b)=>a.frame-b.frame);}
- for(const prop of ANIMATED_PROPERTIES)k[prop]=current[prop];return k;
+ for(const prop of ANIMATED_PROPERTIES)k[prop]=current[prop];k.blank=false;return k;
+}
+/** Author a discrete layer exposure key without disturbing tweened properties. */
+export function setLayerExposure(project,id,frame,exposed){
+ if(!Number.isSafeInteger(frame)||frame<0||frame>=project.duration)throw new Error('Exposure keyframe must be on the composition timeline');
+ if(typeof exposed!=='boolean')throw new Error('Layer exposure must be a boolean');
+ const candidate=cloneProject(project),node=candidate.nodes.find(item=>item.id===id);
+ if(!node)throw new Error('Select a layer before editing exposure');
+ if(node.locked)throw new Error(`Unlock ${node.name} before editing exposure`);
+ let key=node.keyframes.find(item=>item.frame===frame);
+ if(!key){if(node.keyframes.length>=1000)throw new Error('A layer supports at most 1,000 keyframes');key={frame,easing:'step'};node.keyframes.push(key);node.keyframes.sort((a,b)=>a.frame-b.frame);}
+ key.blank=!exposed;
+ const validated=validateProject(candidate);project.nodes=validated.nodes;
+ return project.nodes.find(item=>item.id===id).keyframes.find(item=>item.frame===frame);
 }
 function frameEditCount(value,label){
  if(!Number.isSafeInteger(value)||value<1||value>36000)throw new Error(`${label} must be an integer between 1 and 36,000`);
@@ -422,6 +439,7 @@ export function copyLayerFrame(project,id,source,destination){
  let key=node.keyframes.find(key=>key.frame===destination);
  if(!key){if(node.keyframes.length>=1000)throw new Error('A layer supports at most 1,000 keyframes');key={frame:destination,easing:'easeInOut'};node.keyframes.push(key);}
  for(const property of ANIMATED_PROPERTIES)key[property]=pose[property];
+ key.blank=!pose.visible&&node.visible!==false;
  if(sourceKey){const timing=normalizeTiming(sourceKey);key.easing=timing.easing;if(timing.bezier)key.bezier=timing.bezier;else delete key.bezier;if(sourceKey.curves)key.curves=structuredClone(sourceKey.curves);else delete key.curves;}
  node.keyframes.sort((a,b)=>a.frame-b.frame);
  const validated=validateProject(candidate);project.nodes=validated.nodes;return project.nodes.find(item=>item.id===id).keyframes.find(item=>item.frame===destination);
@@ -459,7 +477,7 @@ export function removeNodeMask(project,id){
   for(const property of MASK_PROPERTIES){delete key[property];if(key.curves)delete key.curves[property];}
   if(key.curves&&!Object.keys(key.curves).length)delete key.curves;
  }
- node.keyframes=node.keyframes.filter(key=>ANIMATED_PROPERTIES.some(property=>Number.isFinite(key[property])));
+ node.keyframes=node.keyframes.filter(key=>typeof key.blank==='boolean'||ANIMATED_PROPERTIES.some(property=>Number.isFinite(key[property])));
  if(node.keyframes.length>1000)throw new Error('A layer supports at most 1,000 keyframes');
  const validated=validateProject(candidate);
  project.nodes[index]=validated.nodes[index];return project.nodes[index];

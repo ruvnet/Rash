@@ -185,6 +185,13 @@ try {
     await edit(); await tap(page.locator('#right-panel').getByRole('tab',{name:'Motion',exact:true})); await tap(button('Remove this keyframe')); assert.deepEqual((await node(rectangleId)).keyframes.map(k=>k.frame),[0]);
     await closeInspector(); await tap(button('Undo')); assert.deepEqual((await node(rectangleId)).keyframes.map(k=>k.frame),[0,30]);
   });
+  await check('mobile frame operations author and undo blank exposure keys', async () => {
+    await more('frame-operations'); await tap(page.locator('#modal').getByRole('button',{name:'Blank keyframe',exact:true}));
+    assert.equal((await node(rectangleId)).keyframes.find(k=>k.frame===30).blank,true); assert.equal(await page.locator('#stage > g[data-node-id="'+rectangleId+'"]').getAttribute('display'),'none');
+    await more('frame-operations'); await tap(page.locator('#modal').getByRole('button',{name:'Expose layer',exact:true}));
+    assert.equal((await node(rectangleId)).keyframes.find(k=>k.frame===30).blank,false); assert.equal(await page.locator('#stage > g[data-node-id="'+rectangleId+'"]').getAttribute('display'),'inline');
+    await tap(button('Undo')); assert.equal((await node(rectangleId)).keyframes.find(k=>k.frame===30).blank,true); await tap(button('Redo')); assert.equal((await node(rectangleId)).keyframes.find(k=>k.frame===30).blank,false);
+  });
   await check('touch timeline seeks and playback advances frames', async () => {
     const box=await page.locator('#tracks-scroll').boundingBox(); await page.touchscreen.tap(box.x+Math.min(115,box.width-10),box.y+12);
     const start=await getFrame(); assert.ok(start>0); await tap(button('Play animation')); await page.waitForTimeout(220);

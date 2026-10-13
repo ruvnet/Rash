@@ -22,7 +22,7 @@ A ready made example is the fastest starting point. In the [gallery](https://ruv
 4. Use the visible **Undo** or **Redo** controls to recover an edit. Delete removes the selected instance, not the shared symbol definition.
 5. **More** opens the complete menu, including **Open project**, **Download project**, **Export composition**, **Scene camera**, **Symbol library**, **Actions script editor** and **Help and shortcuts**.
 6. Use **Motion** to enter an exact frame and add, edit or remove a keyframe without a keyboard.
-7. Use **More → Frame operations** to insert or remove time at the playhead, or copy the selected layer's current pose to another frame.
+7. Use **More → Frame operations** to insert or remove time, author blank or exposed keyframes, or copy the selected layer's current pose to another frame.
 
 If an inspector covers the stage, close it before selecting a different object. Saving and exporting while inside a symbol preserve the entire project.
 
@@ -30,7 +30,7 @@ If an inspector covers the stage, close it before selecting a different object. 
 
 The timeline presents frames; motion dialogs also accept seconds. Changing FPS preserves key timing in seconds with frame rounding. In Motion, select an individual **Motion property** to give position, rotation, opacity or another track its own easing. **All properties** resets the per property overrides.
 
-Choose **Frames** beside the desktop transport, or **More → Frame operations** on mobile. **Insert frames** shifts every layer key, camera key and affected symbol start offset at or after the playhead. **Remove frames** deletes keys in the removed span and shifts later timing earlier while always retaining at least one composition frame. **Copy pose** samples every animated property of the selected unlocked layer at the playhead and writes an editable key at the destination. Each operation is atomic and creates one Undo step. It affects the timeline currently open, either Scene or an edited graphic-symbol definition.
+Choose **Frames** beside the desktop transport, or **More → Frame operations** on mobile. **Insert frames** shifts every layer key, camera key and affected symbol start offset at or after the playhead. **Remove frames** deletes keys in the removed span and shifts later timing earlier while always retaining at least one composition frame. **Blank keyframe** hides the selected layer from the playhead until a later **Expose layer** or ordinary keyframe; the hollow diamond on the timeline identifies a blank. **Copy pose** samples every animated property plus exposure state at the playhead and writes an editable key at the destination. Each operation is atomic and creates one Undo step. It affects the timeline currently open, either Scene or an edited graphic-symbol definition.
 
 For a wipe or iris, select a layer and open **Properties → Reveal mask**. Choose Rectangle or Ellipse, adjust the local bounds, then choose **Animate mask**. Move to another frame before changing mask values to animate them. **Fit mask to layer** restores the bounds for the current frame. **Remove mask** clears the mask and its animation as one undoable edit.
 
