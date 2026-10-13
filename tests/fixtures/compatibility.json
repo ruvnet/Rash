@@ -7,6 +7,7 @@
     {"id":"lookup", "source":"this.hero.x=11; _root.hero.y=22; getNode(\"hero-id\").rotation=30; trace(hero.x,hero.y,hero.rotation);", "logs":["11 22 30"], "commands":[{"type":"set","id":"hero-id","property":"x","value":11},{"type":"set","id":"hero-id","property":"y","value":22},{"type":"set","id":"hero-id","property":"rotation","value":30}]},
     {"id":"alpha-aliases", "source":"hero._alpha=25; trace(hero.alpha,hero._alpha); hero.alpha=2; trace(hero.alpha);", "logs":["0.25 25","1"], "commands":[{"type":"set","id":"hero-id","property":"opacity","value":0.25},{"type":"set","id":"hero-id","property":"opacity","value":1}]},
     {"id":"timeline", "source":"play();stop();gotoAndPlay(0);gotoAndStop(24);", "logs":[], "commands":[{"type":"play"},{"type":"stop"},{"type":"goto","frame":0,"play":true},{"type":"goto","frame":24,"play":false}]},
+    {"id":"timeline-labels", "source":"gotoAndPlay(\"Intro\");gotoAndStop(\"Outro\");", "logs":[], "commands":[{"type":"goto","frame":3,"play":true},{"type":"goto","frame":24,"play":false}]},
     {"id":"stage", "source":"trace(stage.stageWidth,stage.stageHeight,stage.frameRate,currentFrame);", "logs":["1280 720 30 12"]},
     {"id":"motion", "source":"hero.rotationX=30;hero.rotationY=90;hero.z=4;hero.glow=6;hero.primitive=\"torus\";hero.wireframe=true;", "logs":[], "commands":[{"type":"set","id":"hero-id","property":"rotationX","value":30},{"type":"set","id":"hero-id","property":"rotationY","value":90},{"type":"set","id":"hero-id","property":"z","value":4},{"type":"set","id":"hero-id","property":"glow","value":6},{"type":"set","id":"hero-id","property":"primitive","value":"torus"},{"type":"set","id":"hero-id","property":"wireframe","value":true}]}
   ],
@@ -25,6 +26,7 @@
     {"id":"events", "source":"hero.addEventListener(\"enterFrame\",tick);"},
     {"id":"display-list", "source":"addChild(hero);"},
     {"id":"directional-scale", "source":"hero.scaleX=2;"},
+    {"id":"unknown-frame-label", "source":"gotoAndStop(\"Missing\");", "error":"Unknown frame label"},
     {"id":"network", "source":"fetch(\"https://example.com\");"},
     {"id":"eval", "source":"eval(\"trace(1)\");"},
     {"id":"external-interface", "source":"ExternalInterface.call(\"alert\",1);"},
