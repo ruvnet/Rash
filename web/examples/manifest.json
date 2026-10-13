@@ -2,7 +2,7 @@
   "generator": "node scripts/generate-examples.mjs",
   "sourceHashes": {
     "scripts/generate-examples.mjs": "0d5eb9b5303c9f7bdd661e50c9fcb4be58da2ee2487c6f2655b5e2ac90f939ba",
-    "web/core/model.js": "7c59f1b78f12bb70f28d469252e57bf2c19045379184bb032477e04b1941488c",
+    "web/core/model.js": "85e0e33849ee828977190cb4eb17091f5e9770b47eb492f8637a0b6bef53e1ad",
     "web/core/renderer.js": "481df60953f7eaab5bcd73ad4d9d23fd3fdcaee49d98b6064d9a9c32edf3e158",
     "web/core/three-svg.js": "b46a8caed46a0029f15e20716361c31e23aa82f11727caeba182b36c1c2c27b1",
     "web/export/svg.js": "2b38891ae8cb83d7e67ab1ff740bbb41f14eed428ed2b156421187bf625b2c86",
