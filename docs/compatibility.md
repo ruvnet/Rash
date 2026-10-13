@@ -8,7 +8,7 @@ This document describes the current source, with precise limits. Release accepta
 | --- | --- | --- |
 | Stage | Retained SVG vectors, Three.js projected box/sphere/torus/pyramid layers, animated rectangle/ellipse masks, blur/glow and four blend modes | No general SVG import, feathering, inverted or referenced masks, textures, shaders or arbitrary filters; 3D objects use SVG layer order rather than shared depth |
 | Timeline | Numeric transform/effect/mask keyframes, optional spatial cubic Bezier segments between position keys, optional segment-level tangent auto-orientation, discrete blank/exposed layer keys, named frame labels, label-based `gotoAndPlay`/`gotoAndStop`, adjacent previous/next-frame onion skinning, bounded evaluated position trajectories with draggable keyframe and tangent handles, editable presets, stagger, temporal Bezier graph, bounce/elastic easing, playback, frame sampling, document-wide frame insertion/removal and selected-layer pose copying | A missing spatial curve retains legacy straight geometry and existing temporal easing; omitted orientation retains authored rotation. Auto-orientation replaces rotation only on the active spatial segment and has no additive offset. Spatial curves belong to one destination-key segment; there are no reusable guide layers or guide attachment. Onion skins, trajectories and handles are editor-only SVG overlays hidden during playback, game preview and export. Nested graphic symbol timelines share document FPS; scene scripts can target root-scene labels only; no scenes, AEP import, expressions, Flash shape tween or frame event graph; per-property easing remains supported, but X/Y overrides do not drive an active spatial segment |
-| Symbols | Reusable graphic definitions, nested instances, shared editing, independent transforms and Loop, Play once or Hold one frame playback | Parent synchronized clocks only; no independent MovieClip events, Button symbol states or symbol scripts; no blur/glow on symbol containers |
+| Symbols | Reusable definitions, nested instances, shared editing, independent transforms, parent-synchronized graphic playback and independently clocked MovieClip playback | No per-clip `stop()`, lifecycle events, Button symbol states or symbol scripts; no blur/glow on symbol containers |
 | Camera | Animated orbit, distance and field of view for projected objects in each scene or symbol definition | Up to 1,000 camera keys per scope; symbol cameras follow their local clock; no WebGL depth buffer |
 | Document | Version 1 flat projects remain supported; creating a symbol upgrades to version 2 with a shared library; web, social, story, HD, A4 and classic presets | 128 definitions, eight nesting levels, 1,000 stored and expanded layers, 5 MB import limit; version 2 requires a current player |
 | Scripting | Rust source parser and interpreter in a dedicated worker | RashScript subset; not a full ActionScript compiler or AVM |
@@ -34,9 +34,9 @@ This document describes the current source, with precise limits. Release accepta
 
 ## Graphic symbol boundary
 
-A graphic symbol is a shared definition with its own dimensions, camera, layers and duration. Instances reference it by `symbolId`. Changing the definition updates every instance; position, size, rotation, opacity, mask, blend mode and playback settings belong to each instance. Supported blur and glow remain available on artwork layers inside a definition. They are rejected on symbol containers because nested filter bounds are not implemented for that case.
+A symbol is a shared definition with its own dimensions, camera, layers and duration. Instances reference it by `symbolId`. Changing the definition updates every instance; position, size, rotation, opacity, mask, blend mode and playback settings belong to each instance. Supported blur and glow remain available on artwork layers inside a definition. They are rejected on symbol containers because nested filter bounds are not implemented for that case.
 
-All timelines use the document FPS. `firstFrame` and `startFrame` are zero based in JSON and displayed as one based frame numbers in the inspector. Before `startFrame`, an instance holds its selected first frame. Loop wraps its local clock; Play once stops at the last symbol frame; Hold one frame samples a fixed frame. Nested instances repeat that mapping through each parent. Seeking and exported frame sampling are deterministic, without a separate MovieClip event loop.
+All timelines use the document FPS. `firstFrame` and `startFrame` are zero based in JSON and displayed as one based frame numbers in the inspector. Before `startFrame`, an instance holds its selected first frame. Loop wraps its parent clock; Play once stops at the last symbol frame; Hold one frame samples a fixed frame. MovieClip loops on the root preview/player transport, so it continues beneath held ancestors and across root loops. Pause freezes that transport, resume retains phase, and seek or restart resets it. Animated SVG uses a bounded common repeat period for the root and reachable MovieClip durations; it explicitly rejects delayed MovieClips (`startFrame > 0`) because a single repeating SMIL cycle cannot preserve their one-time warm-up. This is an independent clock, not a MovieClip event loop: per-clip stop/play, lifecycle events and scripts remain unsupported.
 
 Library supports creating, renaming, placing and editing symbols. The editor converts a selected layer, including another symbol instance, while preserving its geometry and authored timing. **Back to Scene** leaves definition editing. Undo and Redo retain the complete document and editing context. Autosave, project download, embeds and media exports always use the complete root scene and library, even when a definition is open. Definition deletion is rejected while references remain anywhere in the project.
 
@@ -112,10 +112,11 @@ one does not prove that the other artifact is current.
    Add redistributable, versioned fixtures with expected frames and interactions
    before making broader legacy claims. Preserve the separate isolated Ruffle
    player rather than silently converting its results into SVG compatibility.
-2. **Authoring and playback semantics.** Define and test MovieClip lifecycle,
-   event dispatch, display-list construction, button states and independent
-   clocks before claiming Flash symbol parity. Current graphic symbols are
-   synchronized timelines. Function syntax alone would not satisfy this gate.
+2. **Authoring and playback semantics.** Independent MovieClip clocks now have a
+   deterministic transport and bounded SVG common-cycle contract. Define and test
+   per-clip play/stop, MovieClip lifecycle, event dispatch, display-list
+   construction, button states and frame scripts before claiming Flash symbol
+   parity. Function syntax alone would not satisfy this gate.
 3. **Language scope.** Decide whether expanded source authoring targets a strict
    RashScript contract or an ActionScript implementation. Full AS compatibility
    needs its type system, object model, bytecode/runtime and Flash APIs; accepting

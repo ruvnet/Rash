@@ -81,6 +81,7 @@ export function renderScene(svg,project,frame=0,options={}){
  for(const [k,v]of Object.entries({width:project.width,height:project.height,fill:project.background}))set(cache.bg,k,v);
  const nodes=evaluateScene(project,frame),wanted=new Set(),symbols=new Map((project.symbols||[]).map(s=>[s.id,s]));
  const rootFrame=Math.max(0,Math.min(project.duration-1,Number(frame)||0));
+ const clockFrame=Math.max(0,Number(options.clockFrame??rootFrame)||0);
  function renderNodes(parent,scene,localFrame,path=[],owner=null,offset=0,evaluated=evaluateScene(scene,localFrame)){
   const camera=evaluateCamera(scene.camera,localFrame);
   evaluated.forEach((n,index)=>{
@@ -98,7 +99,7 @@ export function renderScene(svg,project,frame=0,options={}){
     const definition=symbols.get(n.symbolId);
     if(!definition)throw new Error(`Missing symbol definition: ${n.symbolId}`);
     set(shape,'data-symbol-content',n.symbolId);set(shape,'transform',`scale(${symbolScale(n,definition)})`);
-    renderNodes(shape,definition,evaluateSymbolFrame(n,localFrame,definition),fullPath,selectedOwner);
+    renderNodes(shape,definition,evaluateSymbolFrame(n,localFrame,definition,clockFrame),fullPath,selectedOwner);
    }else if(n.type==='mesh')renderMesh(entry,n,camera);else for(const [k,v]of Object.entries(nodeAttributes(n)))set(shape,k,v);
    renderEffect(cache,n,scene.camera,scene.nodes[index],key,prefix);const filter=effectFilter(n,prefix);if(filter)set(g,'filter',filter);else g.removeAttribute('filter');
    renderMask(cache,n,key,prefix);const clip=maskReference(n,prefix);if(clip)set(g,'clip-path',clip);else g.removeAttribute('clip-path');
@@ -156,6 +157,7 @@ function symbolSceneToSVG(p,frame,options){
  }
  checkSize(p);
  const rootFrame=Math.max(0,Math.min(p.duration-1,Number(frame)||0));
+ const clockFrame=Math.max(0,Number(options.clockFrame??rootFrame)||0);
  function content(scene,localFrame,path=[]){
   const camera=evaluateCamera(scene.camera,localFrame);
   return evaluateScene(scene,localFrame).map((n,index)=>{
@@ -165,7 +167,7 @@ function symbolSceneToSVG(p,frame,options){
    let shape;
    if(n.type==='symbol'){
     const definition=symbols.get(n.symbolId);
-    shape=`<g data-symbol-content="${esc(n.symbolId)}" transform="scale(${symbolScale(n,definition)})">${content(definition,evaluateSymbolFrame(n,localFrame,definition),fullPath)}</g>`;
+    shape=`<g data-symbol-content="${esc(n.symbolId)}" transform="scale(${symbolScale(n,definition)})">${content(definition,evaluateSymbolFrame(n,localFrame,definition,clockFrame),fullPath)}</g>`;
    }else shape=n.type==='mesh'?meshPaths(n,camera).map(face=>`<path${attr(faceAttributes(face))}/>`).join(''):`<${tag(n)}${attr(nodeAttributes(n))}>${n.type==='text'?textMarkup(n.text):''}</${tag(n)}>`;
    const filter=effectFilter(n,prefix),clip=maskReference(n,prefix);
    return `<g data-node-id="${esc(n.id)}" data-instance-path="${esc(fullPath.join('/'))}" transform="${transform(n)}" opacity="${n.opacity}" style="${groupStyle(n)}"${filter?` filter="${esc(filter)}"`:''}${clip?` clip-path="${esc(clip)}"`:''}>${shape}</g>`;

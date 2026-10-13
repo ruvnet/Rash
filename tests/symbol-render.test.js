@@ -46,6 +46,26 @@ test('animated symbol tracks agree with still evaluation for loop, once, single 
  }
 });
 
+test('MovieClip clocks advance below a held parent and SVG preserves their common repeat period',()=>{
+ const p=fixture();p.duration=20;p.fps=20;p.symbols[0].duration=12;p.symbols[0].nodes[0].keyframes=[{frame:11,x:110,easing:'linear'}];
+ p.symbols.push({id:'holder',name:'Holder',width:100,height:100,duration:1,nodes:[symbol('clip','mark',{playback:'movieclip'})]});
+ p.nodes=[symbol('outer','holder',{playback:'single'})];
+ const clean=validateProject(p);
+ assert.match(section(sceneToSVG(clean,5,{clockFrame:25}),'outer/clip/leaf'),/translate\(10 10\)/);
+ const svg=animatedSVG(clean),track=values(section(svg,'outer/clip/leaf'),'translate');
+ assert.match(svg,/dur="3s"/,'20 and 12 frame clocks require a 60 frame cycle at 20 fps');
+ assert.equal(Number(track[5].split(' ')[0]),50);
+ assert.equal(Number(track[25].split(' ')[0]),10,'same root frame has a later independent MovieClip phase');
+ assert.equal(Number(track.at(-1).split(' ')[0]),0,'common cycle closes without a discontinuity');
+});
+
+test('MovieClip common cycles reject before unbounded SVG sampling',()=>{
+ const p=fixture();p.duration=35999;p.symbols[0].duration=36000;p.nodes[0].playback='movieclip';
+ assert.throws(()=>animatedSVG(p),/common cycle exceeds the 36,000 frame SVG export limit/);
+ p.duration=12;p.symbols[0].duration=5;p.nodes[0].startFrame=2;
+ assert.throws(()=>animatedSVG(p),/cannot repeat a delayed MovieClip/);
+});
+
 test('symbol key times preserve the full numeric ratio of their authored frame',()=>{
  const p=fixture();p.duration=60;
  const svg=animatedSVG(p),times=svg.match(/keyTimes="([^"]+)"/)[1].split(';').map(Number);

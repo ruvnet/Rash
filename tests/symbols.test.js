@@ -30,10 +30,14 @@ test('local clocks loop, stop once, hold one frame and hold firstFrame before th
  assert.equal(evaluateSymbolFrame({...loop,firstFrame:40},0,symbol),0);
  const child=definition('child',[],{duration:4});
  assert.equal(evaluateSymbolFrame(instance('nested','child',{firstFrame:2}),evaluateSymbolFrame(loop,13,symbol),child),3);
+ const movieclip=instance('clip','graphic',{playback:'movieclip',startFrame:5,firstFrame:3});
+ assert.equal(evaluateSymbolFrame(movieclip,0,symbol,13),1,'MovieClip reads the root transport instead of its parent frame');
+ assert.equal(evaluateSymbolFrame(movieclip,99,symbol,25),3,'MovieClip keeps phase across a root timeline loop');
 });
 
 test('symbol instances normalize strict identity and clock fields',()=>{
- for(const extra of [{firstFrame:-1},{firstFrame:.5},{startFrame:Infinity},{startFrame:36001},{playback:'movieclip'},{symbolId:'bad id'}])assert.throws(()=>validateProject(project([definition()],[{...instance(),...extra}])));
+ for(const extra of [{firstFrame:-1},{firstFrame:.5},{startFrame:Infinity},{startFrame:36001},{playback:'independent'},{symbolId:'bad id'}])assert.throws(()=>validateProject(project([definition()],[{...instance(),...extra}])));
+ assert.equal(validateProject(project([definition()],[instance('clip','graphic',{playback:'movieclip'})])).nodes[0].playback,'movieclip');
  const p=validateProject(project());assert.equal(p.nodes[0].playback,'loop');assert.equal(p.nodes[0].startFrame,0);
 });
 

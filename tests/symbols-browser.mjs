@@ -41,6 +41,11 @@ function nestedFixture(){
  p.nodes=[{id:'left',type:'symbol',symbolId:'outer',x:50,y:60,width:200,height:100,playback:'loop',firstFrame:2,startFrame:4},{id:'right',type:'symbol',symbolId:'outer',x:300,y:220,width:160,height:80,playback:'single',firstFrame:9}];
  return validateProject(p);
 }
+function movieclipFixture(){
+ const p=createProject('blank','classic');p.id='movieclip-clock-fixture';p.name='MovieClip clock';p.version=2;p.duration=2;p.fps=10;p.script='';
+ p.symbols=[{id:'clip',name:'Clip',width:40,height:20,duration:3,nodes:[{id:'leaf',type:'rect',width:10,height:10,x:0,y:0,fill:'#00ff00',keyframes:[{frame:2,x:20,easing:'linear'}]}]}];
+ p.nodes=[{id:'instance',type:'symbol',symbolId:'clip',width:40,height:20,playback:'movieclip'}];return validateProject(p);
+}
 try{
  browser=await({chromium,webkit}[name]).launch({headless:true,...(name==='chromium'?{args:['--no-sandbox']}: {})});
  page=await browser.newPage({viewport:{width:1600,height:1000},hasTouch:true});page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));await page.goto(base);await page.waitForFunction(()=>window.RashStudio);
@@ -67,7 +72,10 @@ try{
   await select(second);const before=await read();await page.getByLabel('Symbol playback',{exact:true}).selectOption('single');await field('First symbol frame',11);await field('Start on parent frame',6);
   let n=(await read()).nodes.find(n=>n.id===second);assert.equal(n.playback,'single');assert.equal(n.firstFrame,10);assert.equal(n.startFrame,5);
   await page.evaluate(()=>window.RashStudio.seek(20));const held=await position(page,`#stage [data-instance-path="${second}/actor"]`);await page.evaluate(()=>window.RashStudio.seek(50));assert.deepEqual(await position(page,`#stage [data-instance-path="${second}/actor"]`),held);
-  await command('Undo');await command('Undo');await command('Undo');assert.deepEqual(await read(),before);await page.evaluate(()=>window.RashStudio.seek(0));
+  await command('Undo');await command('Undo');await command('Undo');assert.deepEqual(await read(),before);
+  await page.getByLabel('Symbol playback',{exact:true}).selectOption('movieclip');assert.equal((await read()).nodes.find(n=>n.id===second).playback,'movieclip');assert.match(await page.locator('.symbol-properties').textContent(),/independent preview transport/);
+  const phase=await position(page,`#stage [data-instance-path="${second}/actor"]`);await tap(page.locator('[data-inspector="motion"]'));const fps=page.getByLabel('Playback frames per second',{exact:true});await tap(fps);await fps.fill('6');assert.ok(Math.abs((await position(page,`#stage [data-instance-path="${second}/actor"]`)).x-phase.x)<.01);await fps.fill('60');assert.ok(Math.abs((await position(page,`#stage [data-instance-path="${second}/actor"]`)).x-phase.x)<.01);await fps.blur();
+  await command('Undo');await command('Undo');assert.deepEqual(await read(),before);await tap(page.locator('[data-inspector="properties"]'));await page.evaluate(()=>window.RashStudio.seek(0));
  });
  await pass('nested conversion, cycle guard and root document download while scoped',async()=>{
   await select(first);await tap(page.locator('#inspector [data-action="edit-symbol"]'));await select('actor');await convert('Inner');let p=await read();inner=p.symbols.find(s=>s.name==='Inner').id;assert.equal(p.symbols.length,2);assert.equal(p.nodes.length,2);assert.equal(p.symbols.find(s=>s.id===shared).nodes[0].symbolId,inner);
@@ -88,6 +96,13 @@ try{
   await tap(phone.getByRole('button',{name:'Close inspector',exact:true}));await tap(phone.getByRole('button',{name:'Back to Scene',exact:true}));assert.equal(await scope(phone),null);const before=await read(phone);await tap(phone.getByRole('button',{name:'Delete selected layer',exact:true}));assert.equal((await read(phone)).nodes.length,0);await tap(phone.locator('#selection-toolbar').getByRole('button',{name:'Undo',exact:true}));assert.deepEqual(await read(phone),before);
   assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await phone.screenshot({path:path.join(output,'phone.png'),fullPage:true});
  });
+ await pass('editor MovieClip transport survives root loops, pause and a non-seeking script',async()=>{
+  await importProject(movieclipFixture());const selector='#stage [data-instance-path="instance/leaf"]',initial=await page.locator(selector).getAttribute('transform');await tap(page.getByRole('button',{name:'Play animation',exact:true}));
+  await page.waitForFunction(({selector,initial})=>document.querySelector(selector)?.getAttribute('transform')!==initial&&document.querySelector('#frame-status')?.textContent.includes('Frame 1 of 2'),{selector,initial});await tap(page.getByRole('button',{name:'Pause animation',exact:true}));const phase=await page.locator(selector).getAttribute('transform');await page.waitForTimeout(180);assert.equal(await page.locator(selector).getAttribute('transform'),phase);
+  await command('Actions');await page.getByLabel('ActionScript editor',{exact:true}).fill('trace("noop");');await tap(page.getByRole('button',{name:'Run script',exact:true}));await page.waitForFunction(()=>document.querySelector('#script-output')?.textContent.includes('noop'));assert.equal(await page.locator('#stage [data-instance-path="instance/leaf"]').getAttribute('transform'),phase);await tap(page.locator('#modal').getByRole('button',{name:'Close dialog',exact:true}));
+  await command('Export composition');await tap(page.locator('[data-format="svg"]'));const bytes=await download(()=>tap(page.locator('[data-action="download-export"]')));files.set('/movieclip-export.svg',bytes);await tap(page.locator('#modal').getByRole('button',{name:'Close dialog',exact:true}));const exported=await browser.newPage({viewport:{width:200,height:120}});await exported.goto(local+'movieclip-export.svg');
+  const sample=async time=>{await exported.evaluate(value=>{document.documentElement.pauseAnimations();document.documentElement.setCurrentTime(value);},time);await exported.waitForTimeout(40);return position(exported,'[data-instance-path="instance/leaf"] rect','svg');},at0=await sample(.0001),at2=await sample(.2001),at6=await sample(.6001);assert.ok(Math.abs(at2.x-at0.x)>15);assert.ok(Math.abs(at6.x-at0.x)<.01,'The six-frame common cycle must close exactly');await exported.close();
+ });
  await pass('nested live, still and animated SVG geometry agree at several parent frames',async()=>{
   const fixture=nestedFixture();await importProject(fixture);await command('Export composition');await tap(page.locator('[data-format="svg"]'));const bytes=await download(()=>tap(page.locator('[data-action="download-export"]')));files.set('/symbol-export.svg',bytes);await tap(page.locator('#modal').getByRole('button',{name:'Close dialog',exact:true}));
   const exported=await browser.newPage({viewport:{width:550,height:400}});await exported.goto(local+'symbol-export.svg');assert.equal(await exported.locator('parsererror').count(),0);
@@ -105,18 +120,22 @@ try{
  });
  await pass('cross origin embedded symbol players keep separate clocks and definition state',async()=>{
   const host=await browser.newPage({viewport:{width:700,height:500}});host.on('pageerror',e=>errors.push(e.message));await host.goto(local+'host.html');const assets=process.env.RASH_TEST_URL||local.replace('127.0.0.1','localhost');
-  const result=await host.evaluate(async({assets,fixture})=>{
+  const result=await host.evaluate(async({assets,fixture,movieclip})=>{
    await import(assets+'embed.js');const players=[];
    for(let i=0;i<2;i++){const p=document.createElement('rash-player');p.setAttribute('controls','');p.style.width='300px';const loaded=new Promise(ok=>p.addEventListener('rash-load',ok,{once:true}));const data=document.createElement('script');data.type='application/json';data.textContent=JSON.stringify(fixture);p.append(data);document.body.append(p);await loaded;players.push(p);}
    players[0].seek(10);players[1].seek(25);const transform=p=>p.shadowRoot.querySelector('[data-instance-path="left/child/leaf"]').getAttribute('transform');const before=transform(players[1]);players[0].seek(45);
    const ids=players.flatMap(p=>[...p.shadowRoot.querySelectorAll('defs [id]')].map(e=>e.id));const state=players[0].project;state.symbols[0].nodes[0].fill='#ff0000';
-   return {frames:players.map(p=>p.currentFrame),unaffected:before===transform(players[1]),unique:ids.length===new Set(ids).size,isolated:players[1].project.symbols[0].nodes[0].fill==='#00ff00',left:transform(players[0]),right:transform(players[1])};
-  },{assets,fixture:nestedFixture()});assert.deepEqual(result.frames,[45,25]);assert.ok(result.unaffected&&result.unique&&result.isolated);assert.notEqual(result.left,result.right);await host.close();
+   const clip=document.createElement('rash-player');clip.setAttribute('controls','');clip.setAttribute('loop','');const loaded=new Promise(ok=>clip.addEventListener('rash-load',ok,{once:true}));const data=document.createElement('script');data.type='application/json';data.textContent=JSON.stringify(movieclip);clip.append(data);document.body.append(clip);await loaded;
+   const clipTransform=()=>clip.shadowRoot.querySelector('[data-instance-path="instance/leaf"]').getAttribute('transform'),initial=clipTransform();clip.play();
+   const crossed=await new Promise(resolve=>{const deadline=performance.now()+2000,probe=()=>clip.currentFrame===0&&clipTransform()!==initial?resolve(clipTransform()):performance.now()>deadline?resolve(null):requestAnimationFrame(probe);probe();});
+   clip.pause();const frozen=clipTransform();await new Promise(resolve=>setTimeout(resolve,180));const stayed=frozen===clipTransform();clip.play();const resumed=await new Promise(resolve=>{const deadline=performance.now()+1000,probe=()=>clipTransform()!==frozen?resolve(true):performance.now()>deadline?resolve(false):requestAnimationFrame(probe);probe();});clip.pause();
+   return {frames:players.map(p=>p.currentFrame),unaffected:before===transform(players[1]),unique:ids.length===new Set(ids).size,isolated:players[1].project.symbols[0].nodes[0].fill==='#00ff00',left:transform(players[0]),right:transform(players[1]),movieclip:{initial,crossed,stayed,resumed}};
+  },{assets,fixture:nestedFixture(),movieclip:movieclipFixture()});assert.deepEqual(result.frames,[45,25]);assert.ok(result.unaffected&&result.unique&&result.isolated);assert.notEqual(result.left,result.right);assert.ok(result.movieclip.crossed&&result.movieclip.crossed!==result.movieclip.initial);assert.ok(result.movieclip.stayed&&result.movieclip.resumed);await host.close();
  });
  await pass('symbol resources resolve full root definitions and malformed imports preserve the current document',async()=>{
   const p=await read();const result=await page.evaluate(()=>window.RashStudio.resources.resolve('rash://symbol/inner'));assert.equal(result.value.id,'inner');
   const malformed=structuredClone(p);malformed.symbols[0].nodes.push({id:'cycle',type:'symbol',symbolId:'outer'});await page.locator('#project-import').setInputFiles({name:'cycle.rash.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(malformed))});await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Could not open project'));assert.deepEqual(await read(),p);assert.match(await page.locator('#toast').textContent(),/cycles/);
  });
- assert.deepEqual(errors,[]);await page.screenshot({path:path.join(output,'desktop.png'),fullPage:true});await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify({url:base,browser:name,checks,errors,limitations:['Graphic clocks only; no independent MovieClip events or full ActionScript semantics.','Phone viewport emulation; no physical device claim.']},null,2)+'\n');console.log(`${checks.length} ${name} symbol checks passed`);
+ assert.deepEqual(errors,[]);await page.screenshot({path:path.join(output,'desktop.png'),fullPage:true});await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify({url:base,browser:name,checks,errors,limitations:['Independent MovieClip clocks have no per-clip stop/play, lifecycle events, frame scripts or full ActionScript semantics.','Phone viewport emulation; no physical device claim.']},null,2)+'\n');console.log(`${checks.length} ${name} symbol checks passed`);
 }catch(error){await(phone||page)?.screenshot({path:path.join(output,'failure.png'),fullPage:true}).catch(()=>{});await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify({url:base,browser:name,checks,failedCheck:active,error:error.message,errors},null,2));throw error;}
 finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

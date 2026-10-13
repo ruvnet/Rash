@@ -50,7 +50,7 @@ A version 2 project carries its entire `symbols` library alongside the root `nod
 
 The instance playback values are `loop`, `once` and `single`. `firstFrame` chooses the initial symbol frame; `startFrame` anchors the instance clock to its parent. Both values are zero based in JSON. The first frame holds before the start, and nested symbols evaluate from their immediate parent's frame. A single frame instance still permits its outer transform to animate on the parent timeline. Every scope uses the project's FPS.
 
-A definition can contain vectors, text, projected 3D layers, their effects, geometric masks and other graphic instances. Each definition owns its camera and duration. Container opacity, transform, geometric masks and blending are supported; apply blur/glow to layers inside the definition. Independent MovieClip execution, per symbol scripts, event handlers and Button symbol states are not implemented.
+A definition can contain vectors, text, projected 3D layers, their effects, geometric masks and other symbol instances. Each definition owns its camera and duration. Container opacity, transform, geometric masks and blending are supported; apply blur/glow to layers inside the definition. MovieClip mode advances on an independent player transport across root loops and freezes with player pause. Per-clip play/stop, symbol scripts, lifecycle events and Button symbol states are not implemented.
 
 Use the studio's generated embed snippet or pass the complete validated document to `player.project`. Saving or exporting from inside the symbol editor still includes the root scene and the complete library. `rash://symbol/<id>` addresses a local definition in the editor's resource registry; it is not an asset URL or a remote loader.
 

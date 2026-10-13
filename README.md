@@ -35,7 +35,7 @@ npm run mcp
 
 The Claude plugin launches this server automatically when installed. See the [user guide](docs/user-guide.md#chatgpt-mcp-and-claude), [cloud adapter](cloud/README.md), and [MCP architecture](docs/adr/010-mcp-animation-workspace.md).
 
-Validation: 184 unit and packaging tests and nine MCP browser checks in each of Chromium and WebKit pass. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
+Validation: Node, packaging, MCP UI and integration suites run in GitHub Actions; see the [latest workflow runs](https://github.com/ruvnet/Rash/actions) for current results and test counts. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
 
 The [authenticated Studio](https://rash-svg-studio.ruv.chatgpt.site/studio/) now opens and saves the same hosted MCP projects. Choose **MCP → Manage cloud projects** to browse, open, save a revision, create a copy or delete with confirmation. Device autosave stays local; cloud saves are explicit. Conflicts preserve the editor draft. Public Studio and local Claude storage remain separate. See [shared storage architecture](docs/adr/011-shared-cloud-studio.md) and [export acceptance](docs/export-acceptance.md).
 
@@ -157,7 +157,7 @@ npm run test:examples
 | Capability | Implementation |
 | :--- | :--- |
 | Authoring | SVG stage, 2D vectors and Three.js box/sphere/torus/pyramid layers, inspector, layers, history, zoom |
-| Symbols | Shared graphic definitions, nested timelines, loop/once/single frame instances, scoped editing and full document history |
+| Symbols | Shared graphic definitions, nested timelines, loop/once/single-frame modes and independently clocked MovieClip instances, scoped editing and full document history |
 | Animation | Editable motion presets, stagger, per property Bezier curves, animated cameras, bounce/elastic easing, 3D rotation, animated rectangle/ellipse masks, blur, glow, blend modes |
 | Templates | Mask reveal, Beyond 3D motion, orbital product story, launch, social story, kinetic typography, collector game, blank |
 | Native scripts | Rust parser/interpreter in a dedicated worker; typed variables, arithmetic, conditions, loops, trace, scene properties, timeline controls |
@@ -183,9 +183,9 @@ The four workflow illustrations in this README explain authoring, exports, embed
 
 Convert a selected layer with **Properties → Convert to symbol**, give it a name, then open **Library** to place more instances. **Edit symbol** opens its own stage and timeline. A shared definition edit updates every instance. Convert a layer inside that definition to nest another symbol; the breadcrumb returns to its parent or Scene.
 
-Each instance supports **Loop**, **Play once** and **Single frame**, with first frame and parent start offsets. Definitions have their own dimensions, camera and duration, and share the document FPS. Save, Undo, autosave, SVG export and embeds preserve the whole project while a definition is open. On phones, **More → Convert to symbol**, the inspector and Library expose the same operations. Delete an instance with the visible selection toolbar; a definition can be deleted after its references are removed.
+Each instance supports **Loop with parent**, **Play once with parent**, **Hold one frame** and **MovieClip — independent**, with first-frame and clock-start offsets. Independent MovieClips keep advancing beneath held ancestors and across root loops; pause freezes their transport and resume retains phase. Definitions have their own dimensions, camera and duration, and share the document FPS. Save, Undo, autosave, SVG export and embeds preserve the whole project while a definition is open. On phones, **More → Convert to symbol**, the inspector and Library expose the same operations. Delete an instance with the visible selection toolbar; a definition can be deleted after its references are removed.
 
-These are deterministic graphic symbols. Independent MovieClip clocks, button states and frame scripts remain on the [Flash parity plan](docs/flash-parity.md). Symbol documents use schema version 2; older players reject them. Instance blur and glow are unavailable; apply those effects to artwork inside the definition. [Symbol architecture](docs/adr/009-symbols-and-nested-timelines.md) · [Release verification](docs/release-0.5.0.md).
+These are deterministic graphic symbols and independently clocked MovieClip timelines. Per-clip play/stop, lifecycle events, button states and frame scripts remain on the [Flash parity plan](docs/flash-parity.md). Animated SVG and HTML explicitly reject a delayed MovieClip start because repeating SMIL cannot preserve its one-time warm-up. Symbol documents use schema version 2; older players reject them. Instance blur and glow are unavailable; apply those effects to artwork inside the definition. [Symbol architecture](docs/adr/009-symbols-and-nested-timelines.md) · [MovieClip clock architecture](docs/adr/014-independent-movieclip-clock.md).
 
 ### 3D and motion design
 
@@ -303,6 +303,6 @@ The [ADRs](docs/adr/) document scene ownership, rendering, worker isolation, loc
 
 Ruflo AI Team records task ownership; concurrent Codex workers implement isolated modules. ruOS provides deployment and independent execution evidence. Federation was unavailable during the initial build, so no federation execution or successful claims are asserted.
 
-The product target is a complete Flash authoring and runtime replacement. The [delivery plan](docs/flash-parity.md) defines eight milestones with executable acceptance gates. FLA import, full AS1/AS2/AS3 semantics and Flash APIs, independent MovieClips, Stage3D, synchronized audio/video, collaborative storage and a general game engine remain unfinished. SVG rendering alone does not establish compatibility.
+The product target is a complete Flash authoring and runtime replacement. The [delivery plan](docs/flash-parity.md) defines eight milestones with executable acceptance gates. FLA import, full AS1/AS2/AS3 semantics and Flash APIs, MovieClip lifecycle/events and per-clip controls, Stage3D, synchronized audio/video, collaborative storage and a general game engine remain unfinished. SVG rendering alone does not establish compatibility.
 
 MIT for Rash. Vendored Three.js, RuVector and Ruffle retain their original licenses and provenance.
