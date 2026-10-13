@@ -58,5 +58,7 @@
 
 /* Motion inspector trajectory samples the authored evaluator; editor only. */
 #stage-overlay .motion-trail{fill:none;stroke:#ff7043;stroke-width:1.5;stroke-dasharray:5 4;opacity:.8}
-#stage-overlay .motion-trail-key{fill:#fff;stroke:#ff7043;stroke-width:1.5}
+#stage-overlay .motion-trail-hit{fill:transparent;stroke:transparent;stroke-width:44;pointer-events:all;cursor:grab;touch-action:none}
+#stage-overlay.is-motion-dragging .motion-trail-hit{cursor:grabbing}
+#stage-overlay .motion-trail-key{fill:#fff;stroke:#ff7043;stroke-width:1.5;pointer-events:none}
 #stage-overlay .motion-trail-current{fill:#ff7043;stroke:#fff;stroke-width:2;filter:drop-shadow(0 1px 2px #25312855)}
