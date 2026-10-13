@@ -541,6 +541,13 @@ pub struct Context {
     pub width: f64,
     #[serde(default)]
     pub height: f64,
+    #[serde(default)]
+    pub frame_labels: Vec<FrameLabel>,
+}
+#[derive(Deserialize)]
+pub struct FrameLabel {
+    pub frame: f64,
+    pub name: String,
 }
 fn default_fps() -> f64 {
     30.
@@ -563,6 +570,7 @@ struct Vm {
     vars: HashMap<String, Value>,
     nodes: HashMap<String, HashMap<String, Value>>,
     names: HashMap<String, String>,
+    frame_labels: HashMap<String, f64>,
     context: Context,
     out: Output,
     steps: usize,
@@ -601,6 +609,11 @@ impl Vm {
             vars: HashMap::new(),
             nodes,
             names,
+            frame_labels: context
+                .frame_labels
+                .iter()
+                .map(|label| (label.name.clone(), label.frame))
+                .collect(),
             context,
             out: Output::default(),
             steps: 0,
@@ -987,7 +1000,13 @@ impl Vm {
             }
             "gotoAndPlay" | "gotoAndStop" => {
                 arity(&args, 1)?;
-                let frame = args[0].number()?;
+                let frame = match &args[0] {
+                    Value::Str(label) => *self
+                        .frame_labels
+                        .get(label)
+                        .ok_or_else(|| format!("Unknown frame label: {label}"))?,
+                    value => value.number()?,
+                };
                 if !frame.is_finite() || !(0. ..=1_000_000.).contains(&frame) {
                     return Err("Frame must be between 0 and 1000000".into());
                 }
@@ -1119,6 +1138,36 @@ pub fn run(source: &str, context: Context) -> Output {
             ..Default::default()
         };
     }
+    if context.frame_labels.len() > 1000 {
+        return Output {
+            error: Some("Context exceeds 1000 frame labels".into()),
+            ..Default::default()
+        };
+    }
+    let mut label_names = HashMap::new();
+    for label in &context.frame_labels {
+        if label.name.is_empty() || label.name.len() > 100 {
+            return Output {
+                error: Some("Frame label names must contain 1 to 100 characters".into()),
+                ..Default::default()
+            };
+        }
+        if !label.frame.is_finite()
+            || label.frame.fract() != 0.0
+            || !(0. ..=1_000_000.).contains(&label.frame)
+        {
+            return Output {
+                error: Some("Frame labels must target integer frames between 0 and 1000000".into()),
+                ..Default::default()
+            };
+        }
+        if label_names.insert(&label.name, label.frame).is_some() {
+            return Output {
+                error: Some(format!("Duplicate frame label: {}", label.name)),
+                ..Default::default()
+            };
+        }
+    }
     let parsed = lex(source).and_then(|t| Parser { t, i: 0, depth: 0 }.program());
     let stmts = match parsed {
         Ok(s) => s,
@@ -1210,7 +1259,7 @@ mod wasm {
 mod tests {
     use super::*;
     fn ctx() -> Context {
-        serde_json::from_value(json!({"frame":12,"fps":30,"width":1280,"height":720,"nodes":[{"id":"hero1","name":"hero","x":10,"y":20,"opacity":1}]})).unwrap()
+        serde_json::from_value(json!({"frame":12,"fps":30,"width":1280,"height":720,"frameLabels":[{"frame":3,"name":"Intro"},{"frame":24,"name":"Outro"}],"nodes":[{"id":"hero1","name":"hero","x":10,"y":20,"opacity":1}]})).unwrap()
     }
     fn execute(s: &str) -> Output {
         let r = run(s, ctx());
@@ -1245,12 +1294,17 @@ mod tests {
     }
     #[test]
     fn timeline_controls() {
-        let r = execute("stop(); gotoAndPlay(24); this.play(); _root.gotoAndStop(12);");
-        assert_eq!(r.commands.len(), 4);
+        let r = execute("stop(); gotoAndPlay(24); this.play(); _root.gotoAndStop(12); gotoAndPlay('Intro'); gotoAndStop('Outro');");
+        assert_eq!(r.commands.len(), 6);
         assert_eq!(
             r.commands[1],
             json!({"type":"goto","frame":24.0,"play":true})
         );
+        assert_eq!(r.commands[4], json!({"type":"goto","frame":3.0,"play":true}));
+        assert_eq!(r.commands[5], json!({"type":"goto","frame":24.0,"play":false}));
+        let missing = run("hero.x=99;gotoAndStop('Missing');", ctx());
+        assert!(missing.error.unwrap().contains("Unknown frame label"));
+        assert!(missing.commands.is_empty());
     }
     #[test]
     fn three_and_effect_properties_are_bounded_scene_commands() {

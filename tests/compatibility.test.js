@@ -9,7 +9,7 @@ const bytes = await readFile(new URL('../web/runtime/pkg/rash_runtime.wasm', imp
 const { instance } = await WebAssembly.instantiate(bytes, {});
 const run = bindWasm(instance);
 const matrix = JSON.parse(await readFile(new URL('./fixtures/compatibility.json', import.meta.url), 'utf8'));
-const context = {frame:12,fps:30,width:1280,height:720,nodes:[{id:'hero-id',name:'hero',x:10,y:20,opacity:1}]};
+const context = {frame:12,frameLabels:[{frame:3,name:'Intro'},{frame:24,name:'Outro'}],fps:30,width:1280,height:720,nodes:[{id:'hero-id',name:'hero',x:10,y:20,opacity:1}]};
 
 for (const status of ['supported','divergences']) {
   for (const row of matrix[status]) test(`compatibility ${status}: ${row.id}`, () => {

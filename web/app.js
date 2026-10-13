@@ -196,7 +196,7 @@ async function runScript(){
  project.script=source;const original=rootProject,candidate=cloneProject(rootProject);scheduleSave();output.textContent='Running…';button.disabled=true;
  try{
   if(!runtime)runtime=await createRuntime();
-  const result=await runtime.run(source,{nodes:candidate.nodes,frame,totalFrames:candidate.duration,fps:candidate.fps,width:candidate.width,height:candidate.height});
+  const result=await runtime.run(source,{nodes:candidate.nodes,frame,frameLabels:candidate.frameLabels||[],totalFrames:candidate.duration,fps:candidate.fps,width:candidate.width,height:candidate.height});
   if(result.error)throw new Error(result.error);
   if(rootProject!==original)throw new Error('The project changed during script execution. Run the script again.');
   let requestedPlay,requestedFrame=frame,changed=false;
