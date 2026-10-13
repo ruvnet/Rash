@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {addNode,copyLayerFrame,createProject,evaluateNode,insertTimelineFrames,removeTimelineFrames,validateProject} from '../web/core/model.js';
+import {addKeyframe,addNode,copyLayerFrame,createProject,evaluateNode,insertTimelineFrames,removeTimelineFrames,setLayerExposure,validateProject} from '../web/core/model.js';
 
 function fixture(){
  const project=createProject('blank');project.duration=12;
@@ -31,4 +31,20 @@ test('copying a frame materializes the evaluated pose and is atomic on failure',
 test('timeline edits reject overflow before mutating source',()=>{
  const project=createProject('blank');project.duration=36000;const before=JSON.stringify(project);
  assert.throws(()=>insertTimelineFrames(project,0,1),/at most 36,000/);assert.equal(JSON.stringify(project),before);
+});
+
+test('blank keyframes hold exposure until a layer is explicitly exposed',()=>{
+ const {project,layer}=fixture();setLayerExposure(project,layer.id,4,false);setLayerExposure(project,layer.id,8,true);
+ assert.equal(evaluateNode(project.nodes[0],3).visible,true);assert.equal(evaluateNode(project.nodes[0],4).visible,false);assert.equal(evaluateNode(project.nodes[0],7).visible,false);assert.equal(evaluateNode(project.nodes[0],8).visible,true);
+ assert.equal(project.nodes[0].keyframes.find(key=>key.frame===4).blank,true);assert.equal(project.nodes[0].keyframes.find(key=>key.frame===8).blank,false);
+ const restored=addKeyframe(project,layer.id,5);assert.equal(restored.blank,false,'A normal keyframe restores layer exposure');assert.equal(evaluateNode(project.nodes[0],5).visible,true);
+ assert.equal(validateProject(project).nodes[0].keyframes.find(key=>key.frame===4).blank,true);
+});
+
+test('frame edits and pose copies preserve discrete exposure state atomically',()=>{
+ const {project,layer}=fixture();setLayerExposure(project,layer.id,4,false);insertTimelineFrames(project,2,2);
+ assert.equal(project.nodes[0].keyframes.find(key=>key.frame===6).blank,true);copyLayerFrame(project,layer.id,6,9);
+ assert.equal(project.nodes[0].keyframes.find(key=>key.frame===9).blank,true);assert.equal(evaluateNode(project.nodes[0],9).visible,false);
+ removeTimelineFrames(project,5,2);assert.equal(project.nodes[0].keyframes.find(key=>key.frame===7).blank,true);
+ project.nodes[0].locked=true;const before=JSON.stringify(project);assert.throws(()=>setLayerExposure(project,layer.id,3,true),/Unlock/);assert.equal(JSON.stringify(project),before);
 });
