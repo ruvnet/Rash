@@ -1,7 +1,7 @@
 <a href="https://ruvnet.github.io/Rash/header/">
   <picture>
     <source media="(prefers-reduced-motion: reduce)" srcset="web/header/rash-header.poster.svg">
-    <img src="web/header/rash-header.svg" alt="Rash: ideas in motion. Design vectors, choreograph animation, direct in 3D and publish to the open web." width="1200" height="720">
+    <img src="web/header/rash-header.svg" alt="Rash: ideas in motion. Design vectors, choreograph animation, direct in 3D and publish to the open web." width="1200">
   </picture>
 </a>
 
