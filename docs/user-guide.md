@@ -34,6 +34,8 @@ Choose **Frames** beside the desktop transport, or **More → Frame operations**
 
 Use the **Onion skin** circle beside the desktop Timeline title, or **More → Onion skin** on mobile, to compare the adjacent previous and next evaluated frames. The magenta and green retained-SVG ghosts are noninteractive, stop at composition boundaries and disappear during playback, game preview and export. This is a device-local editor preference; it does not modify project JSON or published output.
 
+Select an animated layer and open the **Motion** inspector to see its evaluated position trajectory on the stage. The dashed SVG trail samples the same easing engine used by playback, marks authored position keyframes and highlights the current evaluated center. Sampling is bounded to 96 points and key markers are bounded to 49, so long compositions remain predictable. The trail disappears outside Motion mode and during playback or preview, and never changes project data or exports. This visualizes existing X/Y animation; editable guide-path attachment is not yet implemented.
+
 For a wipe or iris, select a layer and open **Properties → Reveal mask**. Choose Rectangle or Ellipse, adjust the local bounds, then choose **Animate mask**. Move to another frame before changing mask values to animate them. **Fit mask to layer** restores the bounds for the current frame. **Remove mask** clears the mask and its animation as one undoable edit.
 
 Masks use hard clipping. Feathering, inversion and masks that reference another layer are not implemented.
