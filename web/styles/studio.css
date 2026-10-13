@@ -47,3 +47,11 @@
 @media(min-width:650px) and (max-width:780px) and (max-height:570px),(min-width:650px) and (max-width:1000px) and (pointer:coarse) and (max-height:570px){.editing-symbol .workspace{grid-template-rows:49px 46px minmax(0,1fr)}.editing-symbol .scope-breadcrumb{grid-row:2;grid-column:1/-1}.editing-symbol .stage-area{grid-row:3}}
 
 .mcp-setup{font-size:12px;line-height:1.65}.mcp-banner{display:block;width:100%;height:auto;border-radius:8px;margin-bottom:22px}.mcp-setup p{margin:8px 0 12px}.mcp-setup h3{font-size:14px;font-weight:650}.mcp-endpoint-row{display:flex;align-items:center;gap:8px}.mcp-endpoint-row input{min-width:0;flex:1}.mcp-endpoint-row button{flex-shrink:0;min-height:40px}.mcp-setup pre{max-width:100%;overflow:auto;background:#eef1e7;padding:14px;border:1px solid #dce3cf;border-radius:7px;line-height:1.8;font-size:11px}.mcp-setup code{overflow-wrap:anywhere}.mcp-setup pre code{overflow-wrap:normal}.mcp-setup summary{cursor:pointer;padding:8px 0}.mcp-tools{display:grid;grid-template-columns:max-content 1fr;gap:9px 16px}.mcp-tools dt{font-size:11px;font-weight:600}.mcp-tools dd{margin:0}.mcp-setup .help-callout p:last-child{margin-bottom:0}#mcp-copy-status{min-height:18px;font-size:11px}@media(max-width:600px){.mcp-endpoint-row{flex-direction:column;align-items:stretch}.mcp-endpoint-row input{flex:auto}.mcp-tools{grid-template-columns:1fr;gap:3px}.mcp-tools dd{margin-bottom:8px}}
+
+/* Editor-only retained SVG onion skins. They never enter preview or export roots. */
+.stage-board>#stage{position:relative;z-index:0}
+.stage-board>.onion-skin{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.2;mix-blend-mode:multiply}
+.stage-board>.onion-skin.previous{filter:sepia(1) saturate(7) hue-rotate(300deg)}
+.stage-board>.onion-skin.next{filter:sepia(1) saturate(7) hue-rotate(115deg)}
+.stage-board>#stage-overlay{z-index:2}
+#onion-skin-button{font-size:17px;line-height:1}
