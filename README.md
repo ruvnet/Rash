@@ -17,7 +17,19 @@ Rash is an open source SVG animation studio with a Rust/WebAssembly scripting ru
 
 The twenty second header tours design, motion, 3D and publishing. It is a bespoke, script free SVG using Rash’s production geometry projection, with a static reduced motion fallback. It is not an editor project; the six studies below include editable source and unmodified system exports. Reproduce it with `npm run header:generate`, then verify with `npm run test:header`.
 
-**Status: experimental v0.5.0.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
+**Status: experimental v0.6.0.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
+
+## MCP animation workspace
+
+Create, list, edit, render, export and delete validated animations through seven MCP tools. The self contained view adds playback, frame seeking, layer properties, revision aware saves and mobile controls. Local Claude projects use private files; the hosted adapter uses authenticated R2 storage. These are separate stores, with JSON export for portability.
+
+```sh
+npm run mcp
+```
+
+The Claude plugin launches this server automatically when installed. See the [user guide](docs/user-guide.md#chatgpt-mcp-and-claude), [cloud adapter](cloud/README.md), and [MCP architecture](docs/adr/010-mcp-animation-workspace.md).
+
+Validation: 145 unit tests and nine MCP browser checks in each of Chromium and WebKit pass. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
 
 ## Your next move
 
