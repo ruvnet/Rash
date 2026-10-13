@@ -1,0 +1,84 @@
+{
+  "provenance": {
+    "measuredAt": "2026-10-13T00:39:18.623Z",
+    "command": "npm run bench:symbols",
+    "sourceSha256": {
+      "scripts/benchmark-symbols.mjs": "14df4a35cb70a1597c3fe8e6af05db3cae0da038d737dd3e6dee48e79530078a",
+      "web/core/model.js": "7c59f1b78f12bb70f28d469252e57bf2c19045379184bb032477e04b1941488c"
+    },
+    "fixtureSha256": {
+      "v1": "0234c235332c093ce09d99b53057f755fc053ae1c2ce13b8ec0692444331da1a",
+      "v2": "450358a16e779f6ad9c36f69d9a3c2174e7f7e5c6308e0bf5ec44f055cc0dfdb"
+    }
+  },
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "cpuCount": 9
+  },
+  "fixture": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "duration": 240,
+    "instances": 100,
+    "rectanglesPerInstance": 5,
+    "keysPerRectangle": 4,
+    "v1": {
+      "storedNodes": 500,
+      "expandedNodes": 500,
+      "storedKeys": 2000
+    },
+    "v2": {
+      "definitions": 1,
+      "storedNodes": 105,
+      "expandedNodes": 600,
+      "storedKeys": 20
+    },
+    "validation": "Both projects pre-normalized; validateProject called on each complete document.",
+    "traversal": "evaluateNode on every expanded node at one frame; nested local clocks and translation accumulation included; definition Map built once. No DOM, SVG rendering or browser FPS measured.",
+    "equivalence": "All 240 frames individually compare 500 leaf x/y/width/height/opacity/rotation/scale values within 1e-9; traversal checksums also agree within 1e-7."
+  },
+  "warmup": 100,
+  "iterations": 500,
+  "results": {
+    "v1": {
+      "validate": {
+        "medianMs": 1.5727399999998397,
+        "p95Ms": 2.1491390000001047,
+        "samples": 500
+      },
+      "traversal": {
+        "medianMs": 0.8971169999999802,
+        "p95Ms": 1.145477000000028,
+        "samples": 500
+      },
+      "sourceBytes": 593343,
+      "compactBytes": 320762,
+      "gzipBytes": 12931
+    },
+    "v2": {
+      "validate": {
+        "medianMs": 0.1828410000000531,
+        "p95Ms": 0.2352650000000267,
+        "samples": 500
+      },
+      "traversal": {
+        "medianMs": 0.935389999999984,
+        "p95Ms": 1.1497020000001612,
+        "samples": 500
+      },
+      "sourceBytes": 89341,
+      "compactBytes": 54598,
+      "gzipBytes": 1890
+    }
+  },
+  "sink": 568811675.1795684,
+  "savings": {
+    "sourcePercent": 84.94277340425353,
+    "compactPercent": 82.97865707284528,
+    "gzipPercent": 85.38396102389606
+  }
+}

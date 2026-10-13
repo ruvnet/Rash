@@ -1,4 +1,6 @@
 export const MAX_NODES = 1000;
+export const MAX_SYMBOLS=128,MAX_SYMBOL_DEPTH=8,MAX_SCENE_KEYFRAMES=10000;
+export const SYMBOL_PLAYBACK=Object.freeze(['loop','once','single']);
 export const MAX_TEXT_LINES_PER_NODE=256,MAX_TEXT_LINES=10000;
 export const MAX_MESHES=32,MAX_MESH_TRIANGLES=4096;
 export const MAX_EFFECT_LAYERS=64,MAX_EFFECT_AREA=16_000_000,MAX_SCENE_EFFECT_AREA=32_000_000;
@@ -130,7 +132,7 @@ export function filterSceneBounds(node,cameraOptions){
 }
 export function normalizeNode(n,i=0){
  if(!n || typeof n!=='object')throw new Error('Invalid scene node');
- const type=['rect','ellipse','text','path','mesh'].includes(n.type)?n.type:'rect';
+ const type=['rect','ellipse','text','path','mesh','symbol'].includes(n.type)?n.type:'rect';
  const node={id:str(n.id,`node${i}`,100).replace(/[^\w-]/g,'')||`node${i}`,name:str(n.name,'Layer',100),type,
  x:finite(n.x),y:finite(n.y),width:finite(n.width,160,1,10000),height:finite(n.height,100,1,10000),
  fill:safeColor(n.fill),stroke:safeColor(n.stroke,'none'),strokeWidth:finite(n.strokeWidth,0,0,100),
@@ -145,6 +147,17 @@ export function normalizeNode(n,i=0){
  // Preserve source path geometry so editing W/H also scales actual vector output.
  if(type==='path'){node.pathWidth=finite(n.pathWidth,node.width,1,10000);node.pathHeight=finite(n.pathHeight,node.height,1,10000);}
  if(type==='mesh'){node.primitive=Object.hasOwn(MESH_TRIANGLES,n.primitive)?n.primitive:'box';node.wireframe=n.wireframe===true;}
+ if(type==='symbol'){
+  if(typeof n.symbolId!=='string'||!/^[-\w]{1,100}$/.test(n.symbolId))throw new Error('A symbol instance requires a valid symbolId');
+  node.symbolId=n.symbolId;
+  if(n.playback!==undefined&&!SYMBOL_PLAYBACK.includes(n.playback))throw new Error('Symbol playback must be loop, once or single');
+  node.playback=n.playback||'loop';
+  for(const property of ['firstFrame','startFrame']){
+   const value=n[property]??0;
+   if(!Number.isSafeInteger(value)||value<0||value>36000)throw new Error(`Symbol ${property} must be an integer between 0 and 36,000`);
+   node[property]=value;
+  }
+ }
  if(Array.isArray(n.keyframes))node.keyframes=n.keyframes.slice(0,1000).map(k=>{
   if(!k||typeof k!=='object')throw new Error('Invalid keyframe');
   const f={frame:Math.round(finite(k.frame,0,0,36000)),easing:easings.has(k.easing)?k.easing:'easeInOut'};
@@ -156,9 +169,10 @@ export function normalizeNode(n,i=0){
   }
   return f;
  }).sort((a,b)=>a.frame-b.frame).filter((k,i,a)=>!i||a[i-1].frame!==k.frame);
+ if(type==='symbol'&&hasNodeEffects(node))throw new Error('Blur and glow are not supported on symbol instances. Apply effects to layers inside the symbol.');
  return node;
 }
-export function validateProject(p){
+function validateFlatProject(p){
  if(!p||typeof p!=='object'||Array.isArray(p))throw new Error('Expected a Rash project');
  if(p.version!==1)throw new Error('Unsupported Rash project version');
  if(!Array.isArray(p.nodes)||p.nodes.length>MAX_NODES)throw new Error(`A scene supports at most ${MAX_NODES} layers`);
@@ -180,6 +194,117 @@ export function validateProject(p){
  for(const node of effectNodes){const bounds=filterSceneBounds(node,out.camera),area=bounds.width*bounds.height;if(!Number.isFinite(area)||area>MAX_EFFECT_AREA)throw new Error(`Blur or glow on ${node.name} exceeds the 16 million pixel filter budget. Reduce its dimensions, text size, depth, or effects.`);effectArea+=area;}
  if(effectArea>MAX_SCENE_EFFECT_AREA)throw new Error('Scene effects exceed the 32 million pixel filter budget. Reduce the number or size of filtered layers.');
  return out;
+}
+/** Resource checks use graph summaries, never an expanded object tree. */
+function emptyResources(){return {nodes:0,keyframes:0,timings:0,text:0,meshes:0,triangles:0,effects:0,effectArea:0,maxEffectArea:0};}
+function sumResources(target,source,scale=1){
+ for(const key of ['nodes','keyframes','timings','text','meshes','triangles','effects'])target[key]+=source[key];
+ target.effectArea+=source.effectArea*scale*scale;
+ target.maxEffectArea=Math.max(target.maxEffectArea,source.maxEffectArea*scale*scale);
+ return target;
+}
+function checkResources(r){
+ if(r.nodes>MAX_NODES)throw new Error(`Expanded scene and library support at most ${MAX_NODES} layers`);
+ if(r.keyframes>MAX_SCENE_KEYFRAMES)throw new Error('Expanded scene and library support at most 10,000 keyframes');
+ if(r.timings>MAX_TIMING_OVERRIDES)throw new Error('Expanded scene and library support at most 20,000 property timing overrides');
+ if(r.text>MAX_TEXT_LINES)throw new Error(`Expanded scene and library support at most ${MAX_TEXT_LINES} text lines`);
+ if(r.meshes>MAX_MESHES)throw new Error(`Expanded scene and library support at most ${MAX_MESHES} 3D layers`);
+ if(r.triangles>MAX_MESH_TRIANGLES)throw new Error(`Expanded scene and library support at most ${MAX_MESH_TRIANGLES} 3D triangles`);
+ if(r.effects>MAX_EFFECT_LAYERS)throw new Error(`Expanded scene and library support at most ${MAX_EFFECT_LAYERS} layers with blur or glow`);
+ if(!Number.isFinite(r.maxEffectArea)||r.maxEffectArea>MAX_EFFECT_AREA)throw new Error('A symbol transform exceeds the 16 million pixel filter budget. Reduce its dimensions, scale or descendant effects.');
+ if(!Number.isFinite(r.effectArea)||r.effectArea>MAX_SCENE_EFFECT_AREA)throw new Error('Expanded scene effects exceed the 32 million pixel filter budget. Reduce instance scale or descendant effects.');
+}
+function ownResources(scope){
+ const r=emptyResources();r.keyframes=scope.camera.keyframes.length;
+ for(const node of scope.nodes){
+  r.nodes++;r.keyframes+=node.keyframes.length;
+  for(const key of node.keyframes)r.timings+=Object.keys(key.curves||{}).length;
+  if(node.type==='text')r.text+=node.text.split('\n').length;
+  if(node.type==='mesh'){r.meshes++;r.triangles+=MESH_TRIANGLES[node.primitive];}
+  if(hasNodeEffects(node)){
+   r.effects++;const bounds=filterSceneBounds(node,scope.camera),area=bounds.width*bounds.height;
+   r.effectArea+=area;r.maxEffectArea=Math.max(r.maxEffectArea,area);
+  }
+ }
+ return r;
+}
+/** Symbol dimensions are local coordinates in the inclusive range 1..10,000. */
+function normalizeSymbol(definition,index){
+ if(!definition||typeof definition!=='object'||Array.isArray(definition))throw new Error('Invalid symbol definition');
+ if(typeof definition.id!=='string'||!/^[-\w]{1,100}$/.test(definition.id))throw new Error('A symbol definition requires a valid unique ID');
+ const scope=validateFlatProject({...definition,version:1});
+ return {id:definition.id,name:str(definition.name,`Symbol ${index+1}`,100),width:finite(definition.width,160,1,10000),height:finite(definition.height,100,1,10000),duration:scope.duration,camera:scope.camera,nodes:scope.nodes};
+}
+export function validateProject(p){
+ if(!p||typeof p!=='object'||Array.isArray(p))throw new Error('Expected a Rash project');
+ if(p.version===1){
+  if((p.symbols!==undefined&&(!Array.isArray(p.symbols)||p.symbols.length))||p.nodes?.some?.(node=>node?.type==='symbol'))throw new Error('Symbol libraries and instances require Rash project version 2');
+  return validateFlatProject(p);
+ }
+ if(p.version!==2||!Object.hasOwn(p,'symbols')||!Array.isArray(p.symbols))throw new Error('Unsupported Rash project version: version 2 requires a symbols array');
+ if(p.symbols.length>MAX_SYMBOLS)throw new Error(`A library supports at most ${MAX_SYMBOLS} symbols`);
+ const sources=[p,...p.symbols];let rawNodes=0,rawKeys=0,rawTimings=0;
+ for(const scope of sources){
+  if(!scope||!Array.isArray(scope.nodes))throw new Error('Every symbol requires a nodes array');
+  rawNodes+=scope.nodes.length;rawKeys+=Array.isArray(scope.camera?.keyframes)?scope.camera.keyframes.length:0;
+  if(rawNodes>MAX_NODES)throw new Error(`Scene and library support at most ${MAX_NODES} stored layers`);
+  for(const node of scope.nodes){
+   const keys=Array.isArray(node?.keyframes)?node.keyframes:[];
+   if(keys.length>1000)throw new Error('A layer supports at most 1,000 keyframes');
+   rawKeys+=keys.length;
+   for(const key of keys)for(const property of ANIMATED_PROPERTIES)if(key?.curves&&Object.hasOwn(key.curves,property))rawTimings++;
+  }
+ }
+ if(rawKeys>MAX_SCENE_KEYFRAMES)throw new Error('Scene and library support at most 10,000 stored keyframes');
+ if(rawTimings>MAX_TIMING_OVERRIDES)throw new Error('Scene and library support at most 20,000 stored property timing overrides');
+ const out={...validateFlatProject({...p,version:1}),version:2,symbols:p.symbols.map(normalizeSymbol)};
+ const library=new Map(out.symbols.map(definition=>[definition.id,definition]));
+ if(library.size!==out.symbols.length)throw new Error('Symbol IDs must be unique');
+ const stored=emptyResources();
+ for(const scope of [out,...out.symbols])sumResources(stored,ownResources(scope));
+ checkResources(stored);
+ const memo=new Map(),visiting=new Set(),incoming=new Set(),reachable=new Set();
+ const expand=definition=>{
+  if(visiting.has(definition.id))throw new Error('Symbol references must not contain cycles');
+  if(memo.has(definition.id))return memo.get(definition.id);
+  visiting.add(definition.id);
+  const result=scopeResources(definition);visiting.delete(definition.id);
+  result.depth++;
+  if(result.depth>MAX_SYMBOL_DEPTH)throw new Error(`Symbol nesting exceeds the maximum depth of ${MAX_SYMBOL_DEPTH}`);
+  checkResources(result.resources);memo.set(definition.id,result);return result;
+ };
+ const scopeResources=scope=>{
+  const resources=ownResources(scope);let depth=0;
+  for(const instance of scope.nodes){
+   if(instance.type!=='symbol')continue;
+   const definition=library.get(instance.symbolId);
+   if(!definition)throw new Error(`Missing symbol definition: ${instance.symbolId}`);
+   incoming.add(definition.id);
+   const child=expand(definition);depth=Math.max(depth,child.depth);
+   // Largest singular value bounds all rotated, nonuniform ancestor scales.
+   const scale=Math.max(trackRange(instance,'width')[1]/definition.width,trackRange(instance,'height')[1]/definition.height)*trackRange(instance,'scale')[1];
+   sumResources(resources,child.resources,scale);checkResources(resources);
+  }
+  return {resources,depth};
+ };
+ // Resolve every definition, including unused ones, before publishing a project.
+ for(const definition of out.symbols)expand(definition);
+ const scene=scopeResources(out);
+ const visit=scope=>{for(const node of scope.nodes)if(node.type==='symbol'&&!reachable.has(node.symbolId)){reachable.add(node.symbolId);visit(library.get(node.symbolId));}};
+ visit(out);
+ // Disconnected library roots also consume the document's expanded budget.
+ for(const definition of out.symbols)if(!reachable.has(definition.id)&&!incoming.has(definition.id))sumResources(scene.resources,memo.get(definition.id).resources);
+ checkResources(scene.resources);
+ return out;
+}
+/** Graphic symbols hold firstFrame before startFrame; they are never hidden by a clock. */
+export function evaluateSymbolFrame(instance,parentFrame,definition){
+ const duration=Math.max(1,Math.trunc(Number(definition.duration)||1));
+ const first=Math.max(0,Math.trunc(Number(instance.firstFrame)||0));
+ const elapsed=Math.max(0,(Number(parentFrame)||0)-Math.max(0,Number(instance.startFrame)||0));
+ if(instance.playback==='single')return Math.min(duration-1,first);
+ const frame=elapsed+first;
+ return instance.playback==='once'?Math.min(duration-1,frame):frame%duration;
 }
 export const cloneProject=p=>structuredClone(p);
 export const serializeProject=p=>JSON.stringify(validateProject(p),null,2);

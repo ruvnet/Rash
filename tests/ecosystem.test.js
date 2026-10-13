@@ -86,3 +86,14 @@ test('registry returns isolated data and bounded allowlisted controls', () => {
   assert.throws(() => registry.resolve('rash://help/__proto__'));
   assert.throws(() => registry.resolve('rash://project/other'));
 });
+
+test('symbol resources expose cloned definitions and no descendant control authority', () => {
+  const current={id:'symbols',duration:60,nodes:[],symbols:[{id:'pulse',nodes:[{id:'child',fill:'#ff0000'}]}]};
+  const registry=createResourceRegistry({getProject:()=>current});
+  assert.ok(registry.list().includes('rash://symbol/pulse'));
+  const item=registry.resolve('rash://symbol/pulse');item.value.nodes[0].fill='#00ff00';
+  assert.equal(current.symbols[0].nodes[0].fill,'#ff0000');
+  assert.throws(()=>registry.resolve('rash://symbol/missing'),/not found/);
+  assert.throws(()=>registry.control('select','child'),/Unknown/);
+  assert.throws(()=>parseRashURI('rash://symbol/%2e%2e'));
+});

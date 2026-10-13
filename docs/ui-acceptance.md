@@ -61,8 +61,9 @@ The WebKit release gate exposed change events that did not fire when a touch lef
 | Text and appearance | Multiline text, font size and weight, fill, stroke, opacity, corners | Touch text editing and numeric properties covered. SVG, image and document export paths are exercised; exact font metrics vary by device. |
 | Transform | Position, size, rotation, scale, alignment, stacking; corner resizing for rectangles, ellipses and text | Touch corner drag, numeric edits and path resize covered. Path dimensions and rotation use inspector controls. |
 | Layer operations | Select, rename, hide, lock, duplicate, delete, reorder | Touch suite changes actual project data and rendered visibility, then exercises undo and redo. |
-| History | Project snapshots for undo and redo, bounded memory | Mutation history and selection preserving redo covered. History is not a persistent project archive. |
-| Timeline | Numeric keys, easing, scrub, loop, playback, exact frame input, key deletion, FPS conversion | Mobile key creation, edits, seeking and removal covered. No nested symbols, shape tweening, clip trimming, or frame event graph. |
+| History | Complete project snapshots plus editing scope, selection and frame for undo and redo, bounded memory | Mutation history and selection preserving redo covered. History is not a persistent project archive. |
+| Timeline | Numeric keys, easing, scrub, loop, playback, exact frame input, key deletion, FPS conversion | Mobile key creation, edits, seeking and removal covered. Shared graphic symbols have nested parent synchronized timelines. No independent MovieClip events, shape tweening, clip trimming or frame event graph. |
+| Graphic symbols | Shared library, create/convert/place/rename/edit, nested definitions, Loop, Play once and Hold one frame with offsets | `tests/symbols-browser.mjs` exercises actual desktop and touch authoring, root persistence during scoped edits, cycles, deletion guards and rendering/export agreement. No independent MovieClip runtime or symbol scripts. |
 | Script authoring | Bounded RashScript in a real Rust WASM worker | Actual worker, bounded failure, touch execution and source persistence covered. Full ActionScript is unsupported. |
 | Preview | SVG timeline and collector game preview | Game close restores the authoring project. Embedded game has a separate acceptance suite; media exports do not execute game input. |
 | Local persistence | One autosaved composition plus JSON backup and import | Desktop hostile import and mobile file download, actual file chooser import, and reload covered. No accounts, cloud sync or collaboration. |
@@ -72,10 +73,10 @@ The WebKit release gate exposed change events that did not fire when a touch lef
 | PDF export | Static raster frame in a PDF container | API, independent decoder and visible mobile download covered. Not vector, animated, or editable artwork. |
 | MP4 export | Actual browser MP4 recording when supported | API and touch UI require valid MP4 or explicit unsupported output. Codec and frame cadence depend on the browser. No audio. |
 | HTML export | Standalone animated SVG timeline document | API and visible mobile download covered. It does not execute arbitrary scene scripts or game input. |
-| Project export | Editable JSON containing scene, keys, and script | Model round trip, touch download, and actual file chooser import covered. |
+| Project export | Editable JSON containing scene, keys, script and the complete version 2 symbol library | Model round trip, touch download, and actual file chooser import covered. |
 | JavaScript embed | Independent SVG custom elements, controls, initialization script, collector game input | Same and cross origin worker tests and independent game suite covered. Host CSP and CORS apply. It is not a general Flash game runtime. |
 | Help and menus | Keyboard and touch help, resources, project details, command palette, mobile More menu | Desktop dialogs and touch navigation to help, Actions, resources and embed code covered. |
-| `rash://` resources | Allowlisted local project, node, template, help addresses | Resource tests and desktop resolution covered. It is not a network protocol or remote persistence layer. |
+| `rash://` resources | Allowlisted local project, node, symbol, template and help addresses | Resource tests and desktop resolution covered. It is not a network protocol or remote persistence layer. |
 | Template search | Real optional RuVector WASM cosine search | Tests cover the real module and explicit fallback. Vectors are deterministic lexical features, not learned semantic embeddings. |
 | Legacy SWF | Optional isolated Ruffle player | Sample playback and host isolation probes covered. No SWF editing, FLA import, or universal ActionScript compatibility. |
 | Claude package | Passive manifests and authoring and verification skills | Repository validation only. A real Claude host installation has not been established by editor tests. |
@@ -83,12 +84,30 @@ The WebKit release gate exposed change events that did not fire when a touch lef
 
 ## Release acceptance
 
-Run `npm test`, `cargo test --locked`, `npm run test:ui`, `npm run test:mobile`, `npm run test:workflows`, `RASH_BROWSER=webkit npm run test:workflows`, `npm run test:embed-game`, `npm run test:exports`, and `npm run test:runtime` for the exact release revision. Record each new workflow assertion by name and repeat affected UI paths against the deployed URL. Desktop passing does not substitute for touch acceptance.
+Run `npm test`, `cargo test --locked`, `npm run test:ui`, `npm run test:mobile`, `npm run test:workflows`, `RASH_BROWSER=webkit npm run test:workflows`, `npm run test:embed-game`, `npm run test:exports`, `npm run test:runtime`, `npm run test:symbols`, and `RASH_BROWSER=webkit npm run test:symbols` for the exact release revision. Record each new workflow assertion by name and repeat affected UI paths against the deployed URL. Desktop passing does not substitute for touch acceptance.
 
 The core mobile acceptance sequence is: create a blank composition, add and select text, edit it, change geometry and color, duplicate, lock and attempt edits, unlock, delete, undo and redo, add and remove a keyframe, save and reopen a project, and export through visible controls. No hardware keyboard, direct calls into application action handlers, or injected DOM events may substitute for the relevant gestures. Reading diagnostics for assertions is acceptable.
 
-Full ActionScript, AVM compatibility, FLA editing, arbitrary SVG and media import, nested timelines, Stage3D, a general game engine, audio and video composition, and collaborative cloud persistence remain separate implementation work. Their absence must not be described as completed end to end functionality. Track the broader scope in [issue 2](https://github.com/ruvnet/Rash/issues/2) and the [compatibility matrix](compatibility.md).
+Full ActionScript, AVM compatibility, FLA editing, arbitrary SVG and media import, independent MovieClip timelines and events, Stage3D, a general game engine, audio and video composition, and collaborative cloud persistence remain separate implementation work. Their absence must not be described as completed end to end functionality. Track the broader scope in [issue 2](https://github.com/ruvnet/Rash/issues/2) and the [compatibility matrix](compatibility.md).
 
 ## v0.2.0 follow-up
 
 Three.js object layers, motion presets, easing curves and effects have a separate [release acceptance record](release-0.2.0.md). The v0.1.1 results above remain historical evidence for the mobile baseline.
+
+## Version 2 graphic symbol acceptance
+
+The symbol milestone adds reusable graphic definitions and nested deterministic timelines. It does not complete Flash authoring or ActionScript compatibility. Definition edits update all references; each instance keeps its own transform, opacity, geometric mask, blend mode and playback mode. Blur and glow belong to supported artwork layers inside the definition, not the symbol container.
+
+`tests/symbols-browser.mjs` defines visible desktop and touch acceptance for conversion, shared definition editing, nested conversion, placement, duplicate and Undo, local clocks, offsets, referenced definition deletion, unused definition deletion and whole project download/autosave while editing a symbol. It compares live, still SVG and animated SVG transforms at several parent frames, checks unique clip/filter IDs and independent players across origins, resolves symbol resources and rejects malformed cyclic imports without replacing the current document. Browser selection is controlled by `RASH_BROWSER`; `RASH_TEST_URL` points the same suite at a deployed build. Record actual browser results and the exact commit separately rather than inferring a pass count from this document.
+
+The model and renderer contract is also covered by `tests/symbols.test.js` and `tests/symbol-render.test.js`: explicit version migration, loop/once/single frame math, reference and cycle checks, resource expansion budgets, helper transaction rollback, retained SVG identity and portable export parity. Version 1 projects remain flat; creating a symbol upgrades to version 2. Older players reject that version, so mixed deployment assets are not supported.
+
+For manual acceptance:
+
+1. Create an animated shape and convert it to a symbol using Edit, Properties or the mobile More menu. Place a second instance from Library.
+2. Choose Edit symbol, change an inner layer and the symbol duration, then return with Back to Scene. Both instances must reflect the edit while the root scene retains its own duration.
+3. Set one instance to Hold one frame and another to Loop. Seek the root timeline and confirm the held content stays fixed while its outer transform can still animate.
+4. Nest another symbol, inspect the visible cycle rejection in Library, delete an instance and restore it with Undo. A referenced definition must reject deletion without changing the document.
+5. Save and export while inside a definition, reload the downloaded JSON, and verify the root scene, every definition and both instances remain present. Version 2 files must load with the matching current embed bundle.
+
+Run the touch path without hardware keys and repeat on actual target devices where release claims require them. Chromium or WebKit phone viewport emulation is not proof of physical device keyboard, file sharing or codec behavior.
