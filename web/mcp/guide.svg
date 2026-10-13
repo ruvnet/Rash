@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Rash field guide: one scene, many possibilities</title>
+  <desc id="desc">An animated vector composition connects editable shapes, shared symbols, a projected cube and a portable SVG output. Read the user guide to create, animate and publish your first scene.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101b31"/><stop offset="1" stop-color="#090f1d"/></linearGradient>
+    <linearGradient id="accent"><stop stop-color="#fd9663"/><stop offset="1" stop-color="#ffca88"/></linearGradient>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#8093b3" opacity=".14"/></pattern>
+    <style>
+      text{font-family:Inter,Arial,sans-serif} .label{font-size:11px;font-weight:700;letter-spacing:2px;fill:#91a4c2}.copy{font-size:13px;fill:#a9bad1}.motion{animation:travel 8s ease-in-out infinite}.orbit{transform-origin:807px 167px;animation:orbit 12s linear infinite}.pulse{animation:pulse 4s ease-in-out infinite}.playhead{animation:head 8s linear infinite}
+      @keyframes travel{0%,15%,100%{transform:translateX(0)}45%,65%{transform:translateX(67px)}}
+      @keyframes orbit{to{transform:rotate(360deg)}}
+      @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+      @keyframes head{from{transform:translateX(0)}to{transform:translateX(692px)}}
+      @media(prefers-reduced-motion:reduce){.motion,.orbit,.pulse,.playhead{animation:none}}
+    </style>
+  </defs>
+  <rect width="1200" height="360" rx="20" fill="url(#bg)"/>
+  <rect width="1200" height="360" rx="20" fill="url(#grid)"/>
+  <path d="M30 66H1170" stroke="#263650"/>
+  <text x="34" y="40" class="label" fill="#ffb47f">RASH / THE FIELD GUIDE</text>
+  <text x="1166" y="40" text-anchor="end" class="label">DESIGN → DIRECT → DELIVER</text>
+  <text x="34" y="123" font-size="24" font-weight="700" fill="#f1f6ff">One scene.</text>
+  <text x="34" y="167" font-size="24" font-weight="700" fill="#f1f6ff">Open possibilities.</text>
+  <text x="34" y="202" class="copy">From your first keyframe</text>
+  <text x="34" y="222" class="copy">to reusable motion systems.</text>
+  <rect x="34" y="252" width="237" height="44" rx="10" fill="url(#accent)"/>
+  <text x="53" y="280" font-size="14" font-weight="700" fill="#192132">OPEN THE USER GUIDE</text>
+  <path d="M246 268l6 6-6 6m-9-6h15" fill="none" stroke="#192132" stroke-width="2"/>
+  <g fill="#111f35" stroke="#314360"><rect x="319" y="88" width="193" height="155" rx="12"/><rect x="531" y="88" width="193" height="155" rx="12"/><rect x="743" y="88" width="193" height="155" rx="12"/><rect x="955" y="88" width="211" height="155" rx="12"/></g>
+  <g class="label"><text x="336" y="112">01 / EDIT</text><text x="548" y="112">02 / REUSE</text><text x="760" y="112">03 / DIRECT</text><text x="972" y="112">04 / PUBLISH</text></g>
+  <path d="M354 170h105" stroke="#678098" stroke-dasharray="3 6"/>
+  <g class="motion"><rect x="343" y="145" width="49" height="49" rx="12" fill="#ffb477"/><rect x="338" y="140" width="59" height="59" fill="none" stroke="#6edcca"/><g fill="#101b31" stroke="#6edcca"><rect x="335" y="137" width="6" height="6"/><rect x="394" y="137" width="6" height="6"/><rect x="335" y="196" width="6" height="6"/><rect x="394" y="196" width="6" height="6"/></g></g>
+  <g fill="none" stroke="#597296"><path d="M577 168h37m24 0h40"/></g>
+  <g fill="#b6a2ff"><path d="M575 151l17 17-17 17-17-17z" opacity=".5"/><path d="M628 144l24 24-24 24-24-24z"/><path d="M682 151l17 17-17 17-17-17z" opacity=".5"/></g>
+  <circle class="pulse" cx="628" cy="168" r="34" stroke="#b6a2ff" fill="none"/>
+  <ellipse cx="839" cy="169" rx="71" ry="29" fill="none" stroke="#47677d" transform="rotate(-23 839 169)"/>
+  <g transform="translate(32 0)"><g class="orbit"><path d="M807 129l34 19v39l-34 19-34-19v-39z" fill="#153b44" stroke="#73ddcf"/><path d="M807 168v38m-34-58l34 20 34-20m-68 0l34-19 34 19-34 20z" fill="#2d706c" stroke="#73ddcf"/></g></g>
+  <rect x="983" y="135" width="146" height="68" rx="8" fill="#172d43" stroke="#54718f"/><path d="M983 153h146" stroke="#54718f"/><g fill="#6edcca"><circle cx="993" cy="144" r="2"/><circle cx="1001" cy="144" r="2"/><circle cx="1009" cy="144" r="2"/></g>
+  <text x="1056" y="185" text-anchor="middle" fill="#e1f2fd" font-size="19" font-weight="700">&lt;svg&gt;</text>
+  <g class="copy" text-anchor="middle"><text x="415" y="225">Vectors + keyframes</text><text x="627" y="225">Shared symbols</text><text x="839" y="225">3D + camera motion</text><text x="1060" y="225">SVG + embeds</text></g>
+  <rect x="319" y="260" width="847" height="55" rx="9" fill="#0b1628" stroke="#293c56"/>
+  <text x="335" y="291" class="label">TIMELINE</text>
+  <path d="M435 277h710m-710 22h710" stroke="#293c56"/>
+  <rect x="435" y="281" width="160" height="13" rx="4" fill="#e3a267"/><rect x="602" y="281" width="173" height="13" rx="4" fill="#a18adc"/><rect x="782" y="281" width="174" height="13" rx="4" fill="#4aaa9f"/><rect x="963" y="281" width="180" height="13" rx="4" fill="#628cb1"/>
+  <g class="playhead" stroke="#f3f7ff"><path d="M443 272v32"/><path d="M439 270h8l-4 5z" fill="#f3f7ff"/></g>
+  <text x="34" y="336" font-size="10" fill="#7186a5">SCRIPT FREE SVG · MOTION RESPECTS YOUR SYSTEM PREFERENCE</text>
+  <text x="1166" y="336" text-anchor="end" font-size="10" fill="#7186a5">AN ILLUSTRATED WORKFLOW · SEE GUIDE FOR SUPPORT AND LIMITS</text>
+</svg>

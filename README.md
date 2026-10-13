@@ -11,7 +11,7 @@
 
 **Ideas in motion. Built for the open web.**
 
-[Open the studio](https://ruvnet.github.io/Rash/) · [User guide](docs/user-guide.md) · [Compatibility](docs/compatibility.md) · [Flash parity plan](docs/flash-parity.md) · [Architecture](docs/adr/001-svg-scene-and-worker-runtime.md) · [Security](docs/security.md)
+[Open the studio](https://ruvnet.github.io/Rash/) · [MCP setup](https://ruvnet.github.io/Rash/mcp/connect.html) · [User guide](docs/user-guide.md) · [Compatibility](docs/compatibility.md) · [Flash parity plan](docs/flash-parity.md) · [Architecture](docs/adr/001-svg-scene-and-worker-runtime.md) · [Security](docs/security.md)
 
 Rash is an open source SVG animation studio with a Rust/WebAssembly scripting runtime, a visual timeline, and portable JavaScript embeds. It brings the stage, layers, tools, properties and frame based workflow of classic Flash into a responsive browser editor.
 
