@@ -62,3 +62,9 @@
 #stage-overlay.is-motion-dragging .motion-trail-hit{cursor:grabbing}
 #stage-overlay .motion-trail-key{fill:#fff;stroke:#ff7043;stroke-width:1.5;pointer-events:none}
 #stage-overlay .motion-trail-current{fill:#ff7043;stroke:#fff;stroke-width:2;filter:drop-shadow(0 1px 2px #25312855)}
+#stage-overlay .motion-spatial-arms{fill:none;stroke:#7c5cff;stroke-width:1.25;stroke-dasharray:3 3;pointer-events:none}
+#stage-overlay .motion-spatial-hit{fill:transparent;stroke:transparent;stroke-width:44;pointer-events:all;cursor:grab;touch-action:none}
+#stage-overlay.is-motion-dragging .motion-spatial-hit{cursor:grabbing}
+#stage-overlay .motion-spatial-control{fill:#7c5cff;stroke:#fff;stroke-width:1.5;pointer-events:none;filter:drop-shadow(0 1px 2px #25312855)}
+.spatial-editor{background:linear-gradient(145deg,#f5f1ff,#f8faef)}
+.spatial-editor .button{width:100%;margin-top:8px}

@@ -10,6 +10,7 @@ export const MASK_PROPERTIES=Object.freeze(['maskX','maskY','maskWidth','maskHei
 export const ANIMATED_PROPERTIES=Object.freeze(['x','y','width','height','rotation','opacity','scale','rotationX','rotationY','z','blur','glow',...MASK_PROPERTIES]);
 export const CAMERA_PROPERTIES=Object.freeze(['yaw','pitch','distance','fov']);
 export const MAX_CAMERA_KEYFRAMES=1000,MAX_TIMING_OVERRIDES=20000,MAX_FRAME_LABELS=1000;
+export const MAX_SPATIAL_OFFSET=100000;
 export const EASINGS=Object.freeze(['linear','easeIn','easeOut','easeInOut','step','bezier','bounce','elastic']);
 export const DEFAULT_CAMERA=Object.freeze({yaw:0,pitch:0,distance:800,fov:45});
 export const presets = [
@@ -42,6 +43,16 @@ const cameraBounds={yaw:[-180,180],pitch:[-180,180],distance:[500,2000],fov:[20,
 const boundedProperty=(value,property,fallback=0)=>finite(value,fallback,...(propertyBounds[property]||[-100000,100000]));
 const boundedCameraProperty=(value,property,fallback=DEFAULT_CAMERA[property])=>finite(value,fallback,...cameraBounds[property]);
 export function normalizeBezier(value){return Array.isArray(value)&&value.length===4?value.map((v,i)=>finite(v,i===0?.25:i===1?.1:i===2?.25:1,i%2?-2:0,i%2?3:1)):[.25,.1,.25,1];}
+/** Destination-owned cubic handles, relative to the segment endpoints. */
+export function normalizeSpatial(value){
+ if(value===undefined)return undefined;
+ if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Spatial motion handles must be an object');
+ const pair=(handle,label)=>{
+  if(!Array.isArray(handle)||handle.length!==2||!handle.every(Number.isFinite))throw new Error(`Spatial ${label} handle must contain two finite offsets`);
+  return handle.map(offset=>finite(offset,0,-MAX_SPATIAL_OFFSET,MAX_SPATIAL_OFFSET));
+ };
+ return {out:pair(value.out,'out'),in:pair(value.in,'in')};
+}
 function normalizeTiming(value){const timing={easing:easings.has(value?.easing)?value.easing:'easeInOut'};if(timing.easing==='bezier')timing.bezier=normalizeBezier(value?.bezier);return timing;}
 function timingSource(key,property){return property!=='all'&&key?.curves&&typeof key.curves==='object'&&!Array.isArray(key.curves)&&Object.hasOwn(key.curves,property)?key.curves[property]||key:key;}
 export function keyframeTiming(key,property='all'){
@@ -182,8 +193,17 @@ export function normalizeNode(n,i=0){
    const curves={};for(const property of ANIMATED_PROPERTIES)if(Object.hasOwn(k.curves,property))curves[property]=normalizeTiming(k.curves[property]);
    if(Object.keys(curves).length)f.curves=curves;
   }
+  if(k.spatial!==undefined){
+   if(!Number.isFinite(k.x)||!Number.isFinite(k.y))throw new Error('A spatial motion destination must define finite x and y coordinates');
+   f.spatial=normalizeSpatial(k.spatial);
+  }
   return f;
  }).sort((a,b)=>a.frame-b.frame).filter((k,i,a)=>!i||a[i-1].frame!==k.frame);
+ let previousPosition;
+ for(const key of node.keyframes){
+  if(key.spatial&&previousPosition&&(!Number.isFinite(previousPosition.x)||!Number.isFinite(previousPosition.y)))throw new Error('A spatial motion segment must start at a keyframe with x and y coordinates');
+  if(Number.isFinite(key.x)||Number.isFinite(key.y))previousPosition=key;
+ }
  if(type==='symbol'&&hasNodeEffects(node))throw new Error('Blur and glow are not supported on symbol instances. Apply effects to layers inside the symbol.');
  return node;
 }
@@ -350,6 +370,22 @@ export function evaluateNode(node,frame){
    if(frame<next.frame){const timing=timingSource(next,prop),t=ease((frame-previous.frame)/(next.frame-previous.frame),timing?.easing,timing?.bezier);n[prop]=boundedProperty(previous[prop]+(next[prop]-previous[prop])*t,prop,node[prop]);break;}
    previous=next;n[prop]=next[prop];
   }
+ }
+ // A destination key may opt x/y into one shared cubic path. Its global
+ // timing drives path progress so x and y cannot drift onto separate curves.
+ let previousPosition={frame:0,x:node.x,y:node.y};
+ for(const next of keys){
+  if(!Number.isFinite(next.x)&&!Number.isFinite(next.y))continue;
+  if(next.spatial&&frame>=previousPosition.frame&&frame<next.frame){
+   const handles=normalizeSpatial(next.spatial),timing=normalizeTiming(next);
+   const t=ease((frame-previousPosition.frame)/(next.frame-previousPosition.frame),timing.easing,timing.bezier),u=1-t;
+   const x1=previousPosition.x+handles.out[0],y1=previousPosition.y+handles.out[1];
+   const x2=next.x+handles.in[0],y2=next.y+handles.in[1];
+   n.x=boundedProperty(u*u*u*previousPosition.x+3*u*u*t*x1+3*u*t*t*x2+t*t*t*next.x,'x',node.x);
+   n.y=boundedProperty(u*u*u*previousPosition.y+3*u*u*t*y1+3*u*t*t*y2+t*t*t*next.y,'y',node.y);
+   break;
+  }
+  previousPosition={frame:next.frame,x:next.x,y:next.y};
  }
  let exposed=true;
  for(const key of keys){if(key.frame>frame)break;if(typeof key.blank==='boolean')exposed=!key.blank;}
