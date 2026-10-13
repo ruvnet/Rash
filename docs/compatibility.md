@@ -28,7 +28,8 @@ This document describes the current source, with precise limits. Release accepta
 | MetaHarness | Pinned optional static repository scorecard plus independent local tests | No autonomous evolution or demonstrated self learning |
 | Persistence | Browser local autosave and JSON backup | No account, cloud sync or remote collaboration |
 | Cloudflare | No production Cloudflare dependency | Authentication and tenant storage require a separate implementation |
-| Claude package | Manifest, marketplace and authoring/verification skills | Passive workflows; no autoexec hooks or live MCP server |
+| Claude package | Local stdio MCP server, seven tools, project resources and authoring skills | Host installation and interactive view require separate acceptance; local and cloud stores are separate |
+| MCP App | Self contained SVG view with playback, editing and exports | Browser bridge tests do not prove ChatGPT or Claude host acceptance |
 | Interface | SVG stage with HTML editor controls | Controls are accessible HTML, not a recreation of a whole browser UI in SVG |
 
 ## Graphic symbol boundary

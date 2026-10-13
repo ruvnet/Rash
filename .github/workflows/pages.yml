@@ -37,6 +37,9 @@ jobs:
       - run: RASH_BROWSER=webkit npm run test:header
       - run: npm run test:readme-art
       - run: RASH_BROWSER=webkit npm run test:readme-art
+      - run: npm run build:mcp-ui
+      - run: npm run test:mcp-ui
+      - run: RASH_BROWSER=webkit npm run test:mcp-ui
       - run: npm run test:ui
       - run: npm run test:mobile
       - run: npm run test:workflows

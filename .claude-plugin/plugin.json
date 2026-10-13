@@ -1,10 +1,26 @@
 {
   "name": "rash",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "description": "Author and validate portable SVG animations in Rash Studio with bounded Rust WASM scripting.",
-  "author": { "name": "rUv" },
+  "author": {
+    "name": "rUv"
+  },
   "homepage": "https://ruvnet.github.io/Rash/",
   "repository": "https://github.com/ruvnet/Rash",
   "license": "MIT",
-  "keywords": ["svg", "animation", "rust", "wasm", "rash"]
+  "keywords": [
+    "svg",
+    "animation",
+    "rust",
+    "wasm",
+    "rash"
+  ],
+  "mcpServers": {
+    "rash": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/server.mjs"
+      ]
+    }
+  }
 }

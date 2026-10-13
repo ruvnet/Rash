@@ -1,6 +1,6 @@
 {
   "name": "rash-studio",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "A Rust and SVG animation studio for the open web",
@@ -29,7 +29,12 @@
     "test:header": "node tests/header-browser.mjs",
     "readme:generate": "node scripts/generate-readme-art.mjs",
     "test:readme-art": "node tests/readme-art-browser.mjs",
-    "test:symbols": "node tests/symbols-browser.mjs"
+    "test:symbols": "node tests/symbols-browser.mjs",
+    "mcp": "node mcp/server.mjs",
+    "test:mcp": "node --test tests/mcp*.test.js",
+    "test:mcp-ui": "node tests/mcp-ui-browser.mjs",
+    "build:mcp-ui": "node web/mcp/build.mjs",
+    "build:mcp-cloud": "node scripts/build-mcp-cloud.mjs"
   },
   "engines": {
     "node": ">=22"

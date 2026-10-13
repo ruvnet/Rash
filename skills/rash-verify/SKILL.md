@@ -15,3 +15,5 @@ description: Verify Rash Studio scenes, ActionScript subset behavior, resource l
 8. Record failures before proposed fixes. Re-run the smallest meaningful affected test after remediation. Report unverified claims as unverified; never turn a roadmap into a compatibility statement.
 
 Do not deploy, publish, install hooks, change access controls, upload private projects, or begin paid inference solely as part of validation.
+
+For MCP changes, run `npm run test:mcp` and `npm run test:mcp-ui`. Cover initialize, discovery, CRUD, revision conflicts, resources, persistence, tenant isolation and rejected input. A browser bridge harness validates the resource and protocol, not a real ChatGPT or Claude session. Verify a live host tool call and view separately before claiming host acceptance.

@@ -1,7 +1,14 @@
 {
   "name": "rash-tools",
-  "owner": { "name": "rUv" },
+  "owner": {
+    "name": "rUv"
+  },
   "plugins": [
-    { "name": "rash", "source": "./", "description": "SVG scene authoring and verification for Rash Studio", "version": "0.1.0" }
+    {
+      "name": "rash",
+      "source": "./",
+      "description": "SVG scene authoring and verification for Rash Studio",
+      "version": "0.6.0"
+    }
   ]
 }
