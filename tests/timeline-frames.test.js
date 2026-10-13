@@ -54,6 +54,14 @@ test('symbol definitions retain independent frame labels',()=>{
  assert.deepEqual(saved.frameLabels,[{frame:6,name:'Start'}]);assert.deepEqual(validated.frameLabels??[],[]);
 });
 
+test('timeline edits retime graphic anchors but preserve MovieClip transport delays',()=>{
+ const project=createProject('blank');project.version=2;project.symbols=[{id:'mark',name:'Mark',width:10,height:10,duration:4,camera:{yaw:0,pitch:10,distance:1000,fov:45,keyframes:[]},nodes:[]}];
+ project.nodes=[{id:'graphic',type:'symbol',symbolId:'mark',width:10,height:10,startFrame:6},{id:'clip',type:'symbol',symbolId:'mark',width:10,height:10,startFrame:6,playback:'movieclip'}];
+ const clean=validateProject(project);insertTimelineFrames(clean,4,2);
+ assert.equal(clean.nodes[0].startFrame,8);assert.equal(clean.nodes[1].startFrame,6);
+ removeTimelineFrames(clean,4,2);assert.equal(clean.nodes[0].startFrame,6);assert.equal(clean.nodes[1].startFrame,6);
+});
+
 test('blank keyframes hold exposure until a layer is explicitly exposed',()=>{
  const {project,layer}=fixture();setLayerExposure(project,layer.id,4,false);setLayerExposure(project,layer.id,8,true);
  assert.equal(evaluateNode(project.nodes[0],3).visible,true);assert.equal(evaluateNode(project.nodes[0],4).visible,false);assert.equal(evaluateNode(project.nodes[0],7).visible,false);assert.equal(evaluateNode(project.nodes[0],8).visible,true);
