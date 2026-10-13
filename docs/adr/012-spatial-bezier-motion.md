@@ -51,7 +51,7 @@ Spatial data adds four bounded numbers to an existing destination key and counts
 This decision does **not** implement:
 
 * guide-layer creation or attachment across multiple objects;
-* automatic orientation to the path;
+* automatic orientation to the path (added later by ADR 013, outside this decision);
 * shape tweening or morph topology;
 * multiple scenes or scene navigation;
 * an independent MovieClip clock, lifecycle or event loop;

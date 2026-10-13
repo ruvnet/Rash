@@ -55,11 +55,12 @@ test('animated SVG exports preserve blank and exposed keyframe holds', async () 
 });
 test('animated SVG and embed exports preserve canonical spatial cubic samples', async () => {
   const p=createProject('blank');p.duration=3;const node=addNode(p);node.x=0;node.y=0;
-  node.keyframes=[{frame:0,x:0,y:0,easing:'linear'},{frame:2,x:100,y:0,easing:'linear',spatial:{out:[0,100],in:[0,100]}}];
+  node.keyframes=[{frame:0,x:0,y:0,easing:'linear'},{frame:2,x:100,y:0,easing:'linear',spatial:{out:[0,100],in:[0,100],orient:true}}];
   const svg=await (await exportProject(p,'svg')).blob.text();
   assert.match(svg,/type="translate" values="0 0;50 75;100 0;100 0"/);
+  assert.match(svg,/type="rotate" values="90 100 60;0 100 60;-90 100 60;-90 100 60"/);
   const snippet=embedCode(p,{baseURL:'https://example.org/Rash/'});
-  assert.match(snippet,/"spatial":\{"out":\[0,100\],"in":\[0,100\]\}/);
+  assert.match(snippet,/"spatial":\{"out":\[0,100\],"in":\[0,100\],"orient":true\}/);
 });
 test('embed snippets cannot break out of inline JSON and reject unsafe script URLs', () => {
   const p = createProject('blank'); p.script = '</script><script>alert(1)</script>\u2028';

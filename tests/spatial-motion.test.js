@@ -18,6 +18,38 @@ test('spatial cubic handles normalize and roundtrip without changing their relat
  assert.deepEqual(parseProject(serializeProject(normalized)),normalized);
 });
 
+test('spatial auto-orient follows the cubic tangent through its exact destination',()=>{
+ const {project}=spatialProject(),destination=project.nodes[0].keyframes[1];
+ destination.spatial.orient=true;
+ const normalized=validateProject(project),node=normalized.nodes[0];
+ assert.deepEqual(node.keyframes[1].spatial,{out:[0,100],in:[0,100],orient:true});
+ assert.equal(evaluateNode(node,50).rotation,0);
+ assert.equal(evaluateNode(node,100).rotation,-90);
+ assert.deepEqual(parseProject(serializeProject(normalized)),normalized);
+});
+
+test('disabled or omitted auto-orient preserves authored rotation timing',()=>{
+ for(const orient of [undefined,false]){
+  const {project}=spatialProject(),node=project.nodes[0],destination=node.keyframes[1];
+  node.rotation=10;node.keyframes[0].rotation=10;destination.rotation=50;destination.curves={rotation:{easing:'linear'}};
+  if(orient!==undefined)destination.spatial.orient=orient;
+  const normalized=validateProject(project),evaluated=evaluateNode(normalized.nodes[0],50);
+  assert.equal(evaluated.rotation,30);
+  assert.equal(Object.hasOwn(normalized.nodes[0].keyframes[1].spatial,'orient'),false);
+ }
+});
+
+test('auto-orient falls back deterministically when an endpoint derivative is zero',()=>{
+ const {project}=spatialProject(),node=project.nodes[0],destination=node.keyframes[1];
+ destination.spatial={out:[0,0],in:[0,0],orient:true};
+ const normalized=validateProject(project).nodes[0];
+ assert.equal(evaluateNode(normalized,0).rotation,0,'Nearby curve samples recover the start tangent');
+ assert.equal(evaluateNode(normalized,100).rotation,0,'Nearby curve samples recover the destination tangent');
+ node.x=5;node.y=5;node.rotation=37;node.keyframes=[{frame:0,x:5,y:5},{frame:10,x:5,y:5,spatial:{out:[0,0],in:[0,0],orient:true}}];
+ const stationary=validateProject(project).nodes[0];
+ assert.equal(evaluateNode(stationary,5).rotation,37,'A stationary path falls back to authored rotation');
+});
+
 test('spatial cubic follows one curved x/y path with exact endpoints',()=>{
  const {node}=spatialProject();
  node.opacity=0;node.keyframes[0].opacity=0;node.keyframes[1].opacity=1;
@@ -42,6 +74,8 @@ test('spatial handles reject ambiguity and nonfinite offsets and clamp finite in
  assert.throws(()=>validateProject(project),/destination must define finite x and y/);
  destination.y=0;project.nodes[0].keyframes.splice(1,0,{frame:50,x:25});
  assert.throws(()=>validateProject(project),/start at a keyframe with x and y/);
+ destination.spatial.orient='true';
+ assert.throws(()=>validateProject(project),/auto-orient must be a boolean/);
 });
 
 test('legacy x/y interpolation and serialized key shape remain unchanged without spatial handles',()=>{
