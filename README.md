@@ -1,11 +1,11 @@
 <a href="https://ruvnet.github.io/Rash/header/">
   <picture>
-    <source media="(prefers-reduced-motion: reduce)" srcset="web/header/rash-header.poster.svg">
-    <img src="web/header/rash-header.svg" alt="Rash: ideas in motion. Design vectors, choreograph animation, direct in 3D and publish to the open web." width="1200">
+    <source media="(prefers-reduced-motion: reduce)" srcset="https://raw.githubusercontent.com/ruvnet/Rash/main/web/header/rash-header.poster.svg">
+    <img src="https://raw.githubusercontent.com/ruvnet/Rash/main/web/header/rash-header.svg" alt="Rash: ideas in motion. Design vectors, choreograph animation, direct in 3D and publish to the open web." width="1200">
   </picture>
 </a>
 
-[Play or pause the explainer](https://ruvnet.github.io/Rash/header/) · [Static header](web/header/rash-header.poster.svg) · [Header source](scripts/generate-header.mjs)
+[Play or pause the explainer](https://ruvnet.github.io/Rash/header/) · [Static header](https://raw.githubusercontent.com/ruvnet/Rash/main/web/header/rash-header.poster.svg) · [Header source](scripts/generate-header.mjs)
 
 # Rash Studio
 
@@ -19,6 +19,12 @@ The twenty second header tours design, motion, 3D and publishing. It is a bespok
 
 **Status: experimental v0.6.0.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
 
+```sh
+npx @ruv/rash
+```
+
+This starts the complete Studio on `http://127.0.0.1:4173`. Use `npx @ruv/rash mcp` for the local MCP server, or install globally to use the `rash` and `rash-mcp` commands.
+
 ## MCP animation workspace
 
 Create, list, edit, render, export and delete validated animations through seven MCP tools. The self contained view adds playback, frame seeking, layer properties, revision aware saves and mobile controls. Local Claude projects use private files; the hosted adapter uses authenticated R2 storage. These are separate stores, with JSON export for portability.
@@ -29,14 +35,14 @@ npm run mcp
 
 The Claude plugin launches this server automatically when installed. See the [user guide](docs/user-guide.md#chatgpt-mcp-and-claude), [cloud adapter](cloud/README.md), and [MCP architecture](docs/adr/010-mcp-animation-workspace.md).
 
-Validation: 176 unit tests and nine MCP browser checks in each of Chromium and WebKit pass. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
+Validation: 184 unit and packaging tests and nine MCP browser checks in each of Chromium and WebKit pass. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
 
 The [authenticated Studio](https://rash-svg-studio.ruv.chatgpt.site/studio/) now opens and saves the same hosted MCP projects. Choose **MCP → Manage cloud projects** to browse, open, save a revision, create a copy or delete with confirmation. Device autosave stays local; cloud saves are explicit. Conflicts preserve the editor draft. Public Studio and local Claude storage remain separate. See [shared storage architecture](docs/adr/011-shared-cloud-studio.md) and [export acceptance](docs/export-acceptance.md).
 
 ## Your next move
 
 <a href="docs/user-guide.md">
-  <img src="docs/animations/mcp-guide.svg" alt="Open the Rash user guide: edit vectors, reuse symbols, direct 3D motion and publish portable SVG animations." width="1200">
+  <img src="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/mcp-guide.svg" alt="Open the Rash user guide: edit vectors, reuse symbols, direct 3D motion and publish portable SVG animations." width="1200">
 </a>
 
 [Read the user guide](docs/user-guide.md) for the first animation, mobile editing and deletion, shared symbols, cameras, exports and AI host acceptance. This script free workflow illustration respects reduced motion and uses an intrinsic 10:3 aspect ratio. The main animated header above retains its original proportions.
@@ -51,7 +57,7 @@ SVG images below loop. The gallery starts paused and includes playback controls 
 
 ### 01 · The first move
 
-[![The first move: Position · scale · easing](web/examples/01-first-move.svg)](https://ruvnet.github.io/Rash/examples/#01-first-move)
+[![The first move: Position · scale · easing](https://raw.githubusercontent.com/ruvnet/Rash/main/web/examples/01-first-move.svg)](https://ruvnet.github.io/Rash/examples/#01-first-move)
 
 Position and scale turn a single circle into a smooth, returning gesture.
 
@@ -61,7 +67,7 @@ Position and scale turn a single circle into a smooth, returning gesture.
 
 ### 02 · Type has rhythm
 
-[![Type has rhythm: Stagger · Bezier timing · elastic easing](web/examples/02-kinetic-type.svg)](https://ruvnet.github.io/Rash/examples/#02-kinetic-type)
+[![Type has rhythm: Stagger · Bezier timing · elastic easing](https://raw.githubusercontent.com/ruvnet/Rash/main/web/examples/02-kinetic-type.svg)](https://ruvnet.github.io/Rash/examples/#02-kinetic-type)
 
 Staggered typography and elastic bars create a repeating editorial rhythm.
 
@@ -71,7 +77,7 @@ Staggered typography and elastic bars create a repeating editorial rhythm.
 
 ### 03 · Beyond the surface
 
-[![Beyond the surface: Rectangular wipe · elliptical iris · static 3D geometry](web/examples/03-reveal-masks.svg)](https://ruvnet.github.io/Rash/examples/#03-reveal-masks)
+[![Beyond the surface: Rectangular wipe · elliptical iris · static 3D geometry](https://raw.githubusercontent.com/ruvnet/Rash/main/web/examples/03-reveal-masks.svg)](https://ruvnet.github.io/Rash/examples/#03-reveal-masks)
 
 Two text wipes and a 3D iris share the same portable geometric clipping system.
 
@@ -81,7 +87,7 @@ Two text wipes and a 3D iris share the same portable geometric clipping system.
 
 ### 04 · A new perspective
 
-[![A new perspective: Three.js box · rotation · camera orbit · depth](web/examples/04-camera-study.svg)](https://ruvnet.github.io/Rash/examples/#04-camera-study)
+[![A new perspective: Three.js box · rotation · camera orbit · depth](https://raw.githubusercontent.com/ruvnet/Rash/main/web/examples/04-camera-study.svg)](https://ruvnet.github.io/Rash/examples/#04-camera-study)
 
 A rotating shaded cube combines object rotation with animated camera orbit and distance.
 
@@ -91,7 +97,7 @@ A rotating shaded cube combines object rotation with animated camera orbit and d
 
 ### 05 · Form in orbit
 
-[![Form in orbit: Box + pyramid + torus · wireframe · depth · coordinated rotation](web/examples/05-3d-constellation.svg)](https://ruvnet.github.io/Rash/examples/#05-3d-constellation)
+[![Form in orbit: Box + pyramid + torus · wireframe · depth · coordinated rotation](https://raw.githubusercontent.com/ruvnet/Rash/main/web/examples/05-3d-constellation.svg)](https://ruvnet.github.io/Rash/examples/#05-3d-constellation)
 
 Three rotating satellites move around a retained wireframe torus, with layered depth and restrained color.
 
@@ -101,7 +107,7 @@ Three rotating satellites move around a retained wireframe torus, with layered d
 
 ### 06 · Make the next move
 
-[![Make the next move: Art direction · masks · blur + glow · independent curves · layered 3D](web/examples/06-studio-sequence.svg)](https://ruvnet.github.io/Rash/examples/#06-studio-sequence)
+[![Make the next move: Art direction · masks · blur + glow · independent curves · layered 3D](https://raw.githubusercontent.com/ruvnet/Rash/main/web/examples/06-studio-sequence.svg)](https://ruvnet.github.io/Rash/examples/#06-studio-sequence)
 
 A complete art directed title loop combines a text wipe, focus reveal, staggered bars, independent curves and glowing 3D geometry.
 
@@ -130,15 +136,15 @@ npm run test:examples
 
 <a href="https://ruvnet.github.io/Rash/">
   <picture>
-    <source media="(prefers-reduced-motion: reduce)" srcset="docs/animations/authoring.poster.svg">
-    <img src="docs/animations/authoring.svg" alt="Rash authoring: a selected vector animates across the stage while a timeline playhead moves between keyframes." width="960">
+    <source media="(prefers-reduced-motion: reduce)" srcset="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/authoring.poster.svg">
+    <img src="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/authoring.svg" alt="Rash authoring: a selected vector animates across the stage while a timeline playhead moves between keyframes." width="960">
   </picture>
 </a>
 
 <details>
 <summary>View the actual editor</summary>
 
-![Rash Studio desktop](docs/assets/studio-desktop.png)
+![Rash Studio desktop](https://raw.githubusercontent.com/ruvnet/Rash/main/docs/assets/studio-desktop.png)
 
 </details>
 
@@ -164,8 +170,8 @@ npm run test:examples
 
 <a href="https://ruvnet.github.io/Rash/">
   <picture>
-    <source media="(prefers-reduced-motion: reduce)" srcset="docs/animations/exports.poster.svg">
-    <img src="docs/animations/exports.svg" alt="Rash exports: SVG, GIF, HTML and supported MP4 animation; PNG and raster PDF stills; editable project JSON." width="960">
+    <source media="(prefers-reduced-motion: reduce)" srcset="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/exports.poster.svg">
+    <img src="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/exports.svg" alt="Rash exports: SVG, GIF, HTML and supported MP4 animation; PNG and raster PDF stills; editable project JSON." width="960">
   </picture>
 </a>
 
@@ -247,8 +253,8 @@ npm run build
 
 <a href="docs/embed.md">
   <picture>
-    <source media="(prefers-reduced-motion: reduce)" srcset="docs/animations/embeds.poster.svg">
-    <img src="docs/animations/embeds.svg" alt="Rash embeds: desktop and phone players animate independently inside responsive frames." width="960">
+    <source media="(prefers-reduced-motion: reduce)" srcset="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/embeds.poster.svg">
+    <img src="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/embeds.svg" alt="Rash embeds: desktop and phone players animate independently inside responsive frames." width="960">
   </picture>
 </a>
 
@@ -266,8 +272,8 @@ The editor also generates an embed with inline, safely encoded project data. COR
 
 <a href="docs/compatibility.md">
   <picture>
-    <source media="(prefers-reduced-motion: reduce)" srcset="docs/animations/runtime.poster.svg">
-    <img src="docs/animations/runtime.svg" alt="Rash scripting: bounded ActionScript inspired source runs in a Rust and WASM worker, then validated commands update the SVG stage." width="960">
+    <source media="(prefers-reduced-motion: reduce)" srcset="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/runtime.poster.svg">
+    <img src="https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/runtime.svg" alt="Rash scripting: bounded ActionScript inspired source runs in a Rust and WASM worker, then validated commands update the SVG stage." width="960">
   </picture>
 </a>
 
