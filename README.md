@@ -35,7 +35,7 @@ npm run mcp
 
 The Claude plugin launches this server automatically when installed. See the [user guide](docs/user-guide.md#chatgpt-mcp-and-claude), [cloud adapter](cloud/README.md), and [MCP architecture](docs/adr/010-mcp-animation-workspace.md).
 
-Validation: 184 unit and packaging tests and nine MCP browser checks in each of Chromium and WebKit pass. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
+Validation: Node, packaging, MCP UI and integration suites run in GitHub Actions; see the [latest workflow runs](https://github.com/ruvnet/Rash/actions) for current results and test counts. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
 
 The [authenticated Studio](https://rash-svg-studio.ruv.chatgpt.site/studio/) now opens and saves the same hosted MCP projects. Choose **MCP → Manage cloud projects** to browse, open, save a revision, create a copy or delete with confirmation. Device autosave stays local; cloud saves are explicit. Conflicts preserve the editor draft. Public Studio and local Claude storage remain separate. See [shared storage architecture](docs/adr/011-shared-cloud-studio.md) and [export acceptance](docs/export-acceptance.md).
 
@@ -157,7 +157,7 @@ npm run test:examples
 | Capability | Implementation |
 | :--- | :--- |
 | Authoring | SVG stage, 2D vectors and Three.js box/sphere/torus/pyramid layers, inspector, layers, history, zoom |
-| Symbols | Shared graphic definitions, nested timelines, loop/once/single frame instances, scoped editing and full document history |
+| Symbols | Shared graphic definitions, nested timelines, loop/once/single-frame modes and independently clocked MovieClip instances, scoped editing and full document history |
 | Animation | Editable motion presets, stagger, per property Bezier curves, animated cameras, bounce/elastic easing, 3D rotation, animated rectangle/ellipse masks, blur, glow, blend modes |
 | Templates | Mask reveal, Beyond 3D motion, orbital product story, launch, social story, kinetic typography, collector game, blank |
 | Native scripts | Rust parser/interpreter in a dedicated worker; typed variables, arithmetic, conditions, loops, trace, scene properties, timeline controls |
