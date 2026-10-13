@@ -9,7 +9,7 @@ export const MASK_TYPES=Object.freeze(['none','rect','ellipse']);
 export const MASK_PROPERTIES=Object.freeze(['maskX','maskY','maskWidth','maskHeight','maskRotation']);
 export const ANIMATED_PROPERTIES=Object.freeze(['x','y','width','height','rotation','opacity','scale','rotationX','rotationY','z','blur','glow',...MASK_PROPERTIES]);
 export const CAMERA_PROPERTIES=Object.freeze(['yaw','pitch','distance','fov']);
-export const MAX_CAMERA_KEYFRAMES=1000,MAX_TIMING_OVERRIDES=20000;
+export const MAX_CAMERA_KEYFRAMES=1000,MAX_TIMING_OVERRIDES=20000,MAX_FRAME_LABELS=1000;
 export const EASINGS=Object.freeze(['linear','easeIn','easeOut','easeInOut','step','bezier','bounce','elastic']);
 export const DEFAULT_CAMERA=Object.freeze({yaw:0,pitch:0,distance:800,fov:45});
 export const presets = [
@@ -76,6 +76,20 @@ export function normalizeCamera(camera={}){
   }).sort((a,b)=>a.frame-b.frame).filter((key,index,keys)=>!index||keys[index-1].frame!==key.frame);
  }
  return out;
+}
+export function normalizeFrameLabels(value,duration){
+ if(value===undefined)return undefined;
+ if(!Array.isArray(value)||value.length>MAX_FRAME_LABELS)throw new Error(`A timeline supports at most ${MAX_FRAME_LABELS.toLocaleString()} frame labels`);
+ const names=new Set(),frames=new Set(),labels=value.map(label=>{
+  if(!label||typeof label!=='object'||Array.isArray(label)||typeof label.name!=='string')throw new Error('Invalid frame label');
+  const name=label.name.trim(),frame=label.frame;
+  if(!name||name.length>100)throw new Error('Frame label names must contain 1 to 100 characters');
+  if(!Number.isSafeInteger(frame)||frame<0||frame>=duration)throw new Error('Frame labels must be within the composition timeline');
+  if(names.has(name))throw new Error('Frame label names must be unique');
+  if(frames.has(frame))throw new Error('A frame can contain only one label');
+  names.add(name);frames.add(frame);return {frame,name};
+ });
+ return labels.sort((a,b)=>a.frame-b.frame);
 }
 export const hasNodeEffects=n=>n.blur>0||n.glow>0||(n.keyframes||[]).some(k=>k.blur>0||k.glow>0);
 // Bound every possible interpolated value, including expressive easing overshoot.
@@ -184,6 +198,7 @@ function validateFlatProject(p){
   for(const property of ANIMATED_PROPERTIES)if(Object.hasOwn(key.curves,property)&&++overrideCount>MAX_TIMING_OVERRIDES)throw new Error('A scene supports at most 20,000 property timing overrides');
  }
  const out={version:1,id:str(p.id,uid(),100),name:str(p.name,'Untitled project',120),width:Math.round(finite(p.width,1280,16,4096)),height:Math.round(finite(p.height,720,16,4096)),fps:Math.round(finite(p.fps,30,1,120)),duration:Math.round(finite(p.duration,240,1,36000)),background:safeColor(p.background,'#111522'),camera:normalizeCamera(p.camera),nodes:p.nodes.map(normalizeNode),script:str(p.script,'',50000)};
+ if(p.frameLabels!==undefined)out.frameLabels=normalizeFrameLabels(p.frameLabels,out.duration);
  if(new Set(out.nodes.map(n=>n.id)).size!==out.nodes.length)throw new Error('Layer IDs must be unique');
  if(out.nodes.reduce((sum,n)=>sum+(n.type==='text'?n.text.split('\n').length:0),0)>MAX_TEXT_LINES)throw new Error(`A scene supports at most ${MAX_TEXT_LINES} text lines`);
  const meshes=out.nodes.filter(n=>n.type==='mesh');
@@ -234,7 +249,7 @@ function normalizeSymbol(definition,index){
  if(!definition||typeof definition!=='object'||Array.isArray(definition))throw new Error('Invalid symbol definition');
  if(typeof definition.id!=='string'||!/^[-\w]{1,100}$/.test(definition.id))throw new Error('A symbol definition requires a valid unique ID');
  const scope=validateFlatProject({...definition,version:1});
- return {id:definition.id,name:str(definition.name,`Symbol ${index+1}`,100),width:finite(definition.width,160,1,10000),height:finite(definition.height,100,1,10000),duration:scope.duration,camera:scope.camera,nodes:scope.nodes};
+ return {id:definition.id,name:str(definition.name,`Symbol ${index+1}`,100),width:finite(definition.width,160,1,10000),height:finite(definition.height,100,1,10000),duration:scope.duration,camera:scope.camera,nodes:scope.nodes,...(Object.hasOwn(scope,'frameLabels')?{frameLabels:scope.frameLabels}:{})};
 }
 export function validateProject(p){
  if(!p||typeof p!=='object'||Array.isArray(p))throw new Error('Expected a Rash project');
@@ -244,11 +259,12 @@ export function validateProject(p){
  }
  if(p.version!==2||!Object.hasOwn(p,'symbols')||!Array.isArray(p.symbols))throw new Error('Unsupported Rash project version: version 2 requires a symbols array');
  if(p.symbols.length>MAX_SYMBOLS)throw new Error(`A library supports at most ${MAX_SYMBOLS} symbols`);
- const sources=[p,...p.symbols];let rawNodes=0,rawKeys=0,rawTimings=0;
+ const sources=[p,...p.symbols];let rawNodes=0,rawKeys=0,rawTimings=0,rawLabels=0;
  for(const scope of sources){
   if(!scope||!Array.isArray(scope.nodes))throw new Error('Every symbol requires a nodes array');
-  rawNodes+=scope.nodes.length;rawKeys+=Array.isArray(scope.camera?.keyframes)?scope.camera.keyframes.length:0;
+  rawNodes+=scope.nodes.length;rawKeys+=Array.isArray(scope.camera?.keyframes)?scope.camera.keyframes.length:0;rawLabels+=Array.isArray(scope.frameLabels)?scope.frameLabels.length:0;
   if(rawNodes>MAX_NODES)throw new Error(`Scene and library support at most ${MAX_NODES} stored layers`);
+  if(rawLabels>MAX_FRAME_LABELS)throw new Error(`Scene and library support at most ${MAX_FRAME_LABELS.toLocaleString()} stored frame labels`);
   for(const node of scope.nodes){
    const keys=Array.isArray(node?.keyframes)?node.keyframes:[];
    if(keys.length>1000)throw new Error('A layer supports at most 1,000 keyframes');
@@ -399,6 +415,7 @@ function frameEditCount(value,label){
 function publishTimelineEdit(project,candidate){
  const validated=validateProject(candidate);
  project.duration=validated.duration;project.camera=validated.camera;project.nodes=validated.nodes;
+ if(Object.hasOwn(validated,'frameLabels'))project.frameLabels=validated.frameLabels;
  return project;
 }
 /** Insert empty timeline frames across every layer and the scene camera. */
@@ -407,6 +424,7 @@ export function insertTimelineFrames(project,at,count=1){
  if(!Number.isSafeInteger(at)||at<0||at>project.duration)throw new Error('Insert position must be on the composition timeline');
  if(project.duration+count>36000)throw new Error('A composition supports at most 36,000 frames');
  const candidate=cloneProject(project);candidate.duration+=count;
+ if(candidate.frameLabels)for(const label of candidate.frameLabels)if(label.frame>=at)label.frame+=count;
  for(const key of candidate.camera.keyframes)if(key.frame>=at)key.frame+=count;
  for(const node of candidate.nodes){
   for(const key of node.keyframes)if(key.frame>=at)key.frame+=count;
@@ -422,12 +440,24 @@ export function removeTimelineFrames(project,at,count=1){
  if(removed<1)throw new Error('A composition must keep at least one frame');
  const end=at+removed,candidate=cloneProject(project);candidate.duration-=removed;
  const shift=keys=>keys.filter(key=>key.frame<at||key.frame>=end).map(key=>key.frame>=end?{...key,frame:key.frame-removed}:key);
+ if(candidate.frameLabels)candidate.frameLabels=shift(candidate.frameLabels);
  candidate.camera.keyframes=shift(candidate.camera.keyframes);
  for(const node of candidate.nodes){
   node.keyframes=shift(node.keyframes);
   if(node.type==='symbol')node.startFrame=node.startFrame>=end?node.startFrame-removed:node.startFrame>=at?Math.min(at,candidate.duration-1):node.startFrame;
  }
  return publishTimelineEdit(project,candidate);
+}
+export function setFrameLabel(project,frame,name){
+ if(!Number.isSafeInteger(frame)||frame<0||frame>=project.duration)throw new Error('Frame label must be on the composition timeline');
+ if(typeof name!=='string'||!name.trim()||name.trim().length>100)throw new Error('Frame label names must contain 1 to 100 characters');
+ const candidate=cloneProject(project);candidate.frameLabels=(candidate.frameLabels||[]).filter(label=>label.frame!==frame);candidate.frameLabels.push({frame,name:name.trim()});
+ const validated=validateProject(candidate);project.frameLabels=validated.frameLabels;return project.frameLabels.find(label=>label.frame===frame);
+}
+export function removeFrameLabel(project,frame){
+ if(!Number.isSafeInteger(frame)||frame<0||frame>=project.duration)throw new Error('Frame label must be on the composition timeline');
+ const candidate=cloneProject(project);candidate.frameLabels=(candidate.frameLabels||[]).filter(label=>label.frame!==frame);
+ const validated=validateProject(candidate);project.frameLabels=validated.frameLabels;return project;
 }
 /** Materialize one selected layer's evaluated pose as a keyframe at another frame. */
 export function copyLayerFrame(project,id,source,destination){

@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {addKeyframe,addNode,copyLayerFrame,createProject,evaluateNode,insertTimelineFrames,removeTimelineFrames,setLayerExposure,validateProject} from '../web/core/model.js';
+import {addKeyframe,addNode,copyLayerFrame,createProject,evaluateNode,insertTimelineFrames,removeFrameLabel,removeTimelineFrames,setFrameLabel,setLayerExposure,validateProject} from '../web/core/model.js';
+import {createSymbol} from '../web/core/symbols.js';
 
 function fixture(){
  const project=createProject('blank');project.duration=12;
@@ -31,6 +32,26 @@ test('copying a frame materializes the evaluated pose and is atomic on failure',
 test('timeline edits reject overflow before mutating source',()=>{
  const project=createProject('blank');project.duration=36000;const before=JSON.stringify(project);
  assert.throws(()=>insertTimelineFrames(project,0,1),/at most 36,000/);assert.equal(JSON.stringify(project),before);
+});
+
+test('frame labels validate, retime with timeline edits and remain atomic',()=>{
+ const project=createProject('blank');project.duration=12;
+ setFrameLabel(project,2,'Intro');setFrameLabel(project,6,'Loop');setFrameLabel(project,10,'Exit');
+ assert.deepEqual(project.frameLabels,[{frame:2,name:'Intro'},{frame:6,name:'Loop'},{frame:10,name:'Exit'}]);
+ insertTimelineFrames(project,6,3);assert.deepEqual(project.frameLabels.map(label=>label.frame),[2,9,13]);
+ removeTimelineFrames(project,8,3);assert.deepEqual(project.frameLabels,[{frame:2,name:'Intro'},{frame:10,name:'Exit'}],'Labels inside removed time are dropped and later labels shift');
+ setFrameLabel(project,2,'Opening');assert.deepEqual(project.frameLabels[0],{frame:2,name:'Opening'});
+ const before=JSON.stringify(project);assert.throws(()=>setFrameLabel(project,4,'Exit'),/unique/);assert.equal(JSON.stringify(project),before);
+ removeFrameLabel(project,2);assert.deepEqual(project.frameLabels,[{frame:10,name:'Exit'}]);
+ assert.throws(()=>validateProject({...project,frameLabels:[{frame:project.duration,name:'Past end'}]}),/within the composition timeline/);
+});
+
+test('symbol definitions retain independent frame labels',()=>{
+ const project=createProject('blank'),symbolId=createSymbol(project,'Labeled clip',{duration:24}),definition=project.symbols.find(symbol=>symbol.id===symbolId);
+ const scope={...project,name:definition.name,width:definition.width,height:definition.height,duration:definition.duration,frameLabels:definition.frameLabels||[],camera:definition.camera,nodes:definition.nodes};
+ setFrameLabel(scope,4,'Start');insertTimelineFrames(scope,2,2);Object.assign(definition,{duration:scope.duration,frameLabels:scope.frameLabels,camera:scope.camera,nodes:scope.nodes});
+ const validated=validateProject(project),saved=validated.symbols.find(symbol=>symbol.id===symbolId);
+ assert.deepEqual(saved.frameLabels,[{frame:6,name:'Start'}]);assert.deepEqual(validated.frameLabels??[],[]);
 });
 
 test('blank keyframes hold exposure until a layer is explicitly exposed',()=>{
