@@ -95,6 +95,19 @@ try{
     await command('Add rectangle');await page.evaluate(()=>window.RashStudio.seek(4));await command('Frame operations');await page.locator('#frame-operation-count').fill('2');await tap(page.getByRole('button',{name:'Insert frames',exact:true}));
     p=await project();assert.equal(p.symbols.find(symbol=>symbol.id===scopeId).duration,245);assert.equal(p.duration,243);await command('Undo');assert.equal((await project()).symbols.find(symbol=>symbol.id===scopeId).duration,243);await tap(page.getByRole('button',{name:'Back to Scene',exact:true}));
   });
+  await check('onion skin shows bounded retained previous and next SVG frames',async()=>{
+    await newProject();await command('Add rectangle');const id=(await project()).nodes[0].id;
+    await tap(page.getByRole('tab',{name:'Motion',exact:true}));await setInput('Current frame',1);await tap(page.getByRole('button',{name:'Add keyframe here',exact:true}));
+    await setInput('Current frame',11);await tap(page.getByRole('button',{name:'Add keyframe here',exact:true}));await tap(page.getByRole('tab',{name:'Properties',exact:true}));await setInput('X position',320);
+    await page.evaluate(()=>window.RashStudio.seek(5));const before=await project();await tap(page.getByRole('button',{name:'Toggle onion skin',exact:true}));
+    assert.equal(await page.locator('#onion-skin-button').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#onion-previous').getAttribute('hidden'),null);assert.equal(await page.locator('#onion-next').getAttribute('hidden'),null);
+    const positions=await page.evaluate(id=>['#onion-previous','#onion-next'].map(selector=>Number(document.querySelector(selector+' [data-node-id="'+id+'"]').getAttribute('transform').match(/translate\(([-\d.]+)/)[1])),id);assert.ok(positions[0]<positions[1],'Adjacent frame ghosts must preserve evaluated motion');
+    assert.equal(await page.locator('#onion-previous [data-background]').getAttribute('fill'),'transparent');assert.equal(await page.locator('#onion-previous').getAttribute('aria-hidden'),'true');
+    await page.evaluate(()=>window.RashStudio.seek(0));assert.notEqual(await page.locator('#onion-previous').getAttribute('hidden'),null);assert.equal(await page.locator('#onion-next').getAttribute('hidden'),null);
+    await page.evaluate(()=>window.RashStudio.seek(window.RashStudio.getProject().duration-1));assert.equal(await page.locator('#onion-previous').getAttribute('hidden'),null);assert.notEqual(await page.locator('#onion-next').getAttribute('hidden'),null);
+    await page.evaluate(()=>{window.RashStudio.seek(5);window.RashStudio.play();});assert.notEqual(await page.locator('#onion-previous').getAttribute('hidden'),null);assert.notEqual(await page.locator('#onion-next').getAttribute('hidden'),null);await page.evaluate(()=>window.RashStudio.pause());assert.equal(await page.locator('#onion-previous').getAttribute('hidden'),null);
+    await tap(page.getByRole('button',{name:'Toggle onion skin',exact:true}));assert.equal(await page.locator('#onion-skin-button').getAttribute('aria-pressed'),'false');assert.deepEqual(await project(),before,'Onion skin must remain an editor preference, not document data');
+  });
   await check('frame labels author, seek, rename, retime and undo',async()=>{
     await newProject();await page.evaluate(()=>window.RashStudio.seek(12));await command('Frame operations');await page.locator('#frame-label-name').fill('Intro');await tap(page.getByRole('button',{name:'Add label',exact:true}));
     let p=await project();assert.deepEqual(p.frameLabels,[{frame:12,name:'Intro'}]);assert.equal(await page.locator('[data-frame-label="12"]').count(),1);
@@ -174,6 +187,11 @@ try{
     await mobile.locator('#frame-operation-count').fill('1');await tap(mobile.getByRole('button',{name:'Insert frames',exact:true}));assert.equal(await mobile.evaluate(()=>window.RashStudio.getProject().duration),241);
     await tap(mobile.getByRole('button',{name:'Undo',exact:true}));assert.equal(await mobile.evaluate(()=>window.RashStudio.getProject().duration),240);
     await mobile.evaluate(()=>window.RashStudio.seek(8));await tap(mobile.locator('.mobile-nav').getByRole('button',{name:'More',exact:true}));await tap(mobile.locator('#modal').getByRole('button',{name:'Frame operations',exact:true}));await mobile.locator('#frame-label-name').fill('Phone cue');await tap(mobile.getByRole('button',{name:'Add label',exact:true}));assert.deepEqual(await mobile.evaluate(()=>window.RashStudio.getProject().frameLabels),[{frame:8,name:'Phone cue'}]);
+  });
+  await check('touch phone toggles onion skin from More without changing the project',async()=>{
+    const before=await mobile.evaluate(()=>window.RashStudio.getProject());await mobile.evaluate(()=>window.RashStudio.seek(8));await tap(mobile.locator('.mobile-nav').getByRole('button',{name:'More',exact:true}));await tap(mobile.locator('#modal').getByRole('button',{name:'Onion skin: Off',exact:true}));
+    assert.equal(await mobile.locator('#onion-skin-button').getAttribute('aria-pressed'),'true');assert.equal(await mobile.locator('#onion-previous').getAttribute('hidden'),null);assert.equal(await mobile.locator('#onion-next').getAttribute('hidden'),null);assert.deepEqual(await mobile.evaluate(()=>window.RashStudio.getProject()),before);
+    await tap(mobile.locator('.mobile-nav').getByRole('button',{name:'More',exact:true}));await tap(mobile.locator('#modal').getByRole('button',{name:'Onion skin: On',exact:true}));assert.equal(await mobile.locator('#onion-skin-button').getAttribute('aria-pressed'),'false');
   });
   await check('no uncaught errors in workflow regression tests',async()=>assert.deepEqual(errors,[]));
   await fs.writeFile(path.join(evidenceDir,'evidence.json'),JSON.stringify({url:base,browser:browserName,checks,errors,phone:{width:390,height:844,touch:true},limitations:['No physical iOS keyboard coverage.','Touch drag and resizing gestures are covered separately in Chromium only.']},null,2));
