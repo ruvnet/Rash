@@ -55,3 +55,8 @@
 .stage-board>.onion-skin.next{filter:sepia(1) saturate(7) hue-rotate(115deg)}
 .stage-board>#stage-overlay{z-index:2}
 #onion-skin-button{font-size:17px;line-height:1}
+
+/* Motion inspector trajectory samples the authored evaluator; editor only. */
+#stage-overlay .motion-trail{fill:none;stroke:#ff7043;stroke-width:1.5;stroke-dasharray:5 4;opacity:.8}
+#stage-overlay .motion-trail-key{fill:#fff;stroke:#ff7043;stroke-width:1.5}
+#stage-overlay .motion-trail-current{fill:#ff7043;stroke:#fff;stroke-width:2;filter:drop-shadow(0 1px 2px #25312855)}
