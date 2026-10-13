@@ -7,7 +7,7 @@ This document describes the current source, with precise limits. Release accepta
 | Area | Current implementation | Limit or missing feature |
 | --- | --- | --- |
 | Stage | Retained SVG vectors, Three.js projected box/sphere/torus/pyramid layers, animated rectangle/ellipse masks, blur/glow and four blend modes | No general SVG import, feathering, inverted or referenced masks, textures, shaders or arbitrary filters; 3D objects use SVG layer order rather than shared depth |
-| Timeline | Numeric transform/effect/mask keyframes, editable presets, stagger, Bezier graph, bounce/elastic easing, playback and frame sampling | Nested graphic symbol timelines share the document FPS; no AEP import, expressions, Flash shape tween or frame event graph; per property easing and Bezier overrides are supported |
+| Timeline | Numeric transform/effect/mask keyframes, editable presets, stagger, Bezier graph, bounce/elastic easing, playback, frame sampling, document-wide frame insertion/removal and selected-layer pose copying | Nested graphic symbol timelines share the document FPS; no scenes, blank keyframes, onion skin, AEP import, expressions, Flash shape tween or frame event graph; per property easing and Bezier overrides are supported |
 | Symbols | Reusable graphic definitions, nested instances, shared editing, independent transforms and Loop, Play once or Hold one frame playback | Parent synchronized clocks only; no independent MovieClip events, Button symbol states or symbol scripts; no blur/glow on symbol containers |
 | Camera | Animated orbit, distance and field of view for projected objects in each scene or symbol definition | Up to 1,000 camera keys per scope; symbol cameras follow their local clock; no WebGL depth buffer |
 | Document | Version 1 flat projects remain supported; creating a symbol upgrades to version 2 with a shared library; web, social, story, HD, A4 and classic presets | 128 definitions, eight nesting levels, 1,000 stored and expanded layers, 5 MB import limit; version 2 requires a current player |
@@ -61,6 +61,8 @@ Symbol validation checks both stored definitions and recursively expanded instan
 Run `npm test`, `cargo test`, `npm run test:ui`, `npm run test:symbols`, `RASH_BROWSER=webkit npm run test:symbols` and `node scripts/metaharness-evaluate.mjs` for the affected implementation. Inspect the generated artifacts with independent readers where practical. A release must label untested browsers and unimplemented compatibility explicitly.
 
 `tests/symbols.test.js`, `tests/symbol-render.test.js` and `tests/symbols-browser.mjs` cover the graphic symbol contract at model, renderer/export and visible application boundaries. Their source defines the checks; release evidence must record actual results for the candidate commit.
+
+`tests/timeline-frames.test.js` covers atomic frame insertion, removal and pose copying across layer and camera tracks. `tests/workflows-browser.mjs` exercises the visible desktop controls, Undo and the mobile More route in both Chromium and WebKit. These operations edit one scene or symbol-definition timeline at a time; they do not add multiple Flash scenes or MovieClip lifecycle events.
 
 
 ## Executable scripting compatibility matrix

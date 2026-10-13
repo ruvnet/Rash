@@ -1,0 +1,34 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {addNode,copyLayerFrame,createProject,evaluateNode,insertTimelineFrames,removeTimelineFrames,validateProject} from '../web/core/model.js';
+
+function fixture(){
+ const project=createProject('blank');project.duration=12;
+ const layer=addNode(project);layer.x=0;layer.keyframes=[{frame:2,x:20,easing:'linear'},{frame:6,x:60,easing:'easeOut'},{frame:10,x:100,easing:'linear'}];
+ project.camera.keyframes=[{frame:2,yaw:2},{frame:10,yaw:10}];return {project,layer};
+}
+
+test('inserting frames shifts every track without changing authored poses',()=>{
+ const {project}=fixture();insertTimelineFrames(project,6,3);const layer=project.nodes[0];
+ assert.equal(project.duration,15);assert.deepEqual(layer.keyframes.map(key=>key.frame),[2,9,13]);assert.deepEqual(project.camera.keyframes.map(key=>key.frame),[2,13]);
+ assert.equal(evaluateNode(layer,9).x,60);assert.deepEqual(validateProject(project),project);
+});
+
+test('removing frames drops covered keys, shifts later keys and keeps one frame',()=>{
+ const {project}=fixture();removeTimelineFrames(project,4,4);const layer=project.nodes[0];
+ assert.equal(project.duration,8);assert.deepEqual(layer.keyframes.map(key=>key.frame),[2,6]);assert.deepEqual(project.camera.keyframes.map(key=>key.frame),[2,6]);
+ assert.throws(()=>removeTimelineFrames({...createProject('blank'),duration:1},0,1),/keep at least one frame/);
+});
+
+test('copying a frame materializes the evaluated pose and is atomic on failure',()=>{
+ const {project,layer:original}=fixture(),expected=evaluateNode(original,4);copyLayerFrame(project,original.id,4,8);const layer=project.nodes[0];
+ const copied=layer.keyframes.find(key=>key.frame===8);for(const property of ['x','y','rotation','opacity','scale'])assert.equal(copied[property],expected[property]);
+ const expectedLater=evaluateNode(layer,7);copyLayerFrame(project,layer.id,7,4);assert.equal(project.nodes[0].keyframes.find(key=>key.frame===4).x,expectedLater.x,'An earlier destination must not affect source sampling');
+ const before=JSON.stringify(project);assert.throws(()=>copyLayerFrame(project,layer.id,4,99),/Destination frame/);assert.equal(JSON.stringify(project),before);
+ project.nodes[0].locked=true;assert.throws(()=>copyLayerFrame(project,layer.id,4,8),/Unlock/);
+});
+
+test('timeline edits reject overflow before mutating source',()=>{
+ const project=createProject('blank');project.duration=36000;const before=JSON.stringify(project);
+ assert.throws(()=>insertTimelineFrames(project,0,1),/at most 36,000/);assert.equal(JSON.stringify(project),before);
+});

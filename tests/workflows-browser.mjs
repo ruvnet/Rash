@@ -74,6 +74,23 @@ try{
     await page.getByLabel('Stroke color',{exact:true}).fill('#4488ff');assert.equal((await project()).nodes[0].strokeWidth,1);assert.equal(await page.getByLabel('Stroke width',{exact:true}).inputValue(),'1');
     await setInput('Stroke width',0);assert.equal((await project()).nodes[0].strokeWidth,0,'Autoenabled stroke width must remain editable back to its previous value');
   });
+  await check('frame operations insert, remove and copy time with undo',async()=>{
+    await newProject();await command('Add rectangle');
+    await tap(page.getByRole('tab',{name:'Motion',exact:true}));await setInput('Current frame',1);await tap(page.getByRole('button',{name:'Add keyframe here',exact:true}));
+    await setInput('Current frame',11);await tap(page.getByRole('button',{name:'Add keyframe here',exact:true}));await tap(page.getByRole('tab',{name:'Properties',exact:true}));await setInput('X position',320);
+    await page.evaluate(()=>window.RashStudio.seek(5));await command('Frame operations');await page.locator('#frame-operation-count').fill('3');await tap(page.getByRole('button',{name:'Insert frames',exact:true}));
+    let p=await project();assert.equal(p.duration,243);assert.deepEqual(p.nodes[0].keyframes.map(key=>key.frame),[0,13]);
+    await command('Undo');p=await project();assert.equal(p.duration,240);assert.deepEqual(p.nodes[0].keyframes.map(key=>key.frame),[0,10]);
+    await command('Redo');p=await project();assert.equal(p.duration,243);assert.deepEqual(p.nodes[0].keyframes.map(key=>key.frame),[0,13]);
+    await page.evaluate(()=>window.RashStudio.seek(5));await command('Frame operations');await page.locator('#frame-operation-count').fill('2');await tap(page.getByRole('button',{name:'Remove frames',exact:true}));
+    p=await project();assert.equal(p.duration,241);assert.deepEqual(p.nodes[0].keyframes.map(key=>key.frame),[0,11]);
+    await command('Undo');p=await project();assert.equal(p.duration,243);assert.deepEqual(p.nodes[0].keyframes.map(key=>key.frame),[0,13]);
+    await page.evaluate(()=>window.RashStudio.seek(13));await command('Frame operations');await page.locator('#copy-frame-destination').fill('20');await tap(page.getByRole('button',{name:'Copy pose',exact:true}));
+    p=await project();assert.equal(p.nodes[0].keyframes.find(key=>key.frame===19).x,320);await command('Undo');assert.deepEqual((await project()).nodes[0].keyframes.map(key=>key.frame),[0,13]);
+    await command('Create graphic symbol');await page.getByLabel('Symbol name',{exact:true}).fill('Frame scope');await tap(page.getByRole('button',{name:'Create symbol',exact:true}));const scopeId=await page.evaluate(()=>window.RashStudio.getEditingScope());
+    await command('Add rectangle');await page.evaluate(()=>window.RashStudio.seek(4));await command('Frame operations');await page.locator('#frame-operation-count').fill('2');await tap(page.getByRole('button',{name:'Insert frames',exact:true}));
+    p=await project();assert.equal(p.symbols.find(symbol=>symbol.id===scopeId).duration,245);assert.equal(p.duration,243);await command('Undo');assert.equal((await project()).symbols.find(symbol=>symbol.id===scopeId).duration,243);await tap(page.getByRole('button',{name:'Back to Scene',exact:true}));
+  });
   await check('path width and height edits resize rendered geometry',async()=>{
     await newProject();await tap(page.getByRole('tab',{name:'Library',exact:true}));await tap(page.getByRole('button',{name:'Add Curve',exact:true}));
     pathId=(await project()).nodes[0].id;await tap(page.getByRole('tab',{name:'Properties',exact:true}));
@@ -136,6 +153,12 @@ try{
     await mobile.waitForFunction(()=>document.querySelector('#save-status').textContent.includes('Saved on this device'));
     await mobile.reload();await mobile.waitForFunction(()=>window.RashStudio);const n=await mobile.evaluate(()=>window.RashStudio.getProject().nodes[0]);assert.equal(n.name,'Phone edited');assert.equal(n.x,47);
     await mobile.screenshot({path:path.join(evidenceDir,'phone.png'),fullPage:true});
+  });
+  await check('touch phone exposes frame insertion with undo',async()=>{
+    await tap(mobile.locator('.mobile-nav').getByRole('button',{name:'Layers',exact:true}));await tap(mobile.locator('[data-layer]').first());
+    await mobile.evaluate(()=>window.RashStudio.seek(4));await tap(mobile.locator('.mobile-nav').getByRole('button',{name:'More',exact:true}));await tap(mobile.locator('#modal').getByRole('button',{name:'Frame operations',exact:true}));
+    await mobile.locator('#frame-operation-count').fill('1');await tap(mobile.getByRole('button',{name:'Insert frames',exact:true}));assert.equal(await mobile.evaluate(()=>window.RashStudio.getProject().duration),241);
+    await tap(mobile.getByRole('button',{name:'Undo',exact:true}));assert.equal(await mobile.evaluate(()=>window.RashStudio.getProject().duration),240);
   });
   await check('no uncaught errors in workflow regression tests',async()=>assert.deepEqual(errors,[]));
   await fs.writeFile(path.join(evidenceDir,'evidence.json'),JSON.stringify({url:base,browser:browserName,checks,errors,phone:{width:390,height:844,touch:true},limitations:['No physical iOS keyboard coverage.','Touch drag and resizing gestures are covered separately in Chromium only.']},null,2));
