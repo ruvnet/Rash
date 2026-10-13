@@ -32,8 +32,13 @@ const output=path.resolve('test-results/readme-art-'+name);await fs.mkdir(output
 try{
  browser=await({chromium,webkit}[name]).launch({headless:true,...(name==='chromium'?{args:['--no-sandbox']}: {})});
  const page=await browser.newPage({viewport:{width:960,height:400}}),errors=[],external=[];
+ const rawBase='https://raw.githubusercontent.com/ruvnet/Rash/main/docs/animations/';
+ await page.route(rawBase+'**',async route=>{
+  const file=path.join(root,'docs/animations',route.request().url().slice(rawBase.length));
+  try{await route.fulfill({contentType:'image/svg+xml',body:await fs.readFile(file)});}catch{await route.abort();}
+ });
  page.on('pageerror',e=>errors.push(e.message));
- page.on('request',req=>{if(!req.url().startsWith(base))external.push(req.url());});
+ page.on('request',req=>{if(!req.url().startsWith(base)&&!req.url().startsWith(rawBase))external.push(req.url());});
  assert.equal(hash(await fs.readFile(manifest.source)),manifest.sourceSha256);
  let total=0,totalGzip=0;
  for(const panel of manifest.panels){

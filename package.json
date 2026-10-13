@@ -1,10 +1,57 @@
 {
-  "name": "rash-studio",
+  "name": "@ruv/rash",
   "version": "0.6.0",
-  "private": true,
   "type": "module",
-  "description": "A Rust and SVG animation studio for the open web",
+  "description": "Rust, WebAssembly and SVG animation studio for the open web",
+  "keywords": [
+    "svg",
+    "animation",
+    "wasm",
+    "rust",
+    "flash",
+    "actionscript",
+    "mcp",
+    "threejs"
+  ],
+  "author": "ruvnet",
+  "homepage": "https://ruvnet.github.io/Rash/",
+  "bugs": "https://github.com/ruvnet/Rash/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/Rash.git"
+  },
+  "funding": "https://github.com/sponsors/ruvnet",
+  "bin": {
+    "rash": "bin/rash.mjs",
+    "rash-mcp": "mcp/server.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./model": "./web/core/model.js",
+    "./renderer": "./web/core/renderer.js",
+    "./export": "./web/export/export.js",
+    "./embed": "./web/embed.js",
+    "./mcp": "./mcp/server.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    ".claude-plugin",
+    "bin",
+    "cloud",
+    "docs",
+    "index.js",
+    "mcp",
+    "pkg",
+    "skills",
+    "web",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
+    "start": "node bin/rash.mjs",
     "dev": "node scripts/serve.mjs",
     "test": "node --test tests/*.test.js",
     "test:ui": "node tests/ui.mjs",
@@ -35,7 +82,8 @@
     "test:mcp-ui": "node tests/mcp-ui-browser.mjs",
     "build:mcp-ui": "node web/mcp/build.mjs",
     "build:mcp-cloud": "node scripts/build-mcp-cloud.mjs",
-    "test:studio-cloud": "node tests/studio-cloud-browser.mjs"
+    "test:studio-cloud": "node tests/studio-cloud-browser.mjs",
+    "test:package": "node --test tests/npm-package.test.js"
   },
   "engines": {
     "node": ">=22"
