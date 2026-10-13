@@ -166,4 +166,6 @@ Open https://rash-svg-studio.ruv.chatgpt.site/studio/ and sign in with the accou
 4. If another editor saved first, the conflict preserves your local composition. Choose **Save as new cloud project** to retain both versions, or explicitly reopen the latest cloud project.
 5. To delete, select a project, choose **Delete selected project**, and confirm the named revision. The device composition is preserved.
 
+After a cloud project opens, keyboard focus returns to the composition title. You can rename immediately with Enter or continue through the Studio controls without an invisible dialog retaining focus.
+
 The public GitHub Studio provides a link to the authenticated Studio. Transfer public or local Claude projects with JSON download/import, then save as a new cloud project. No credentials are copied between origins. Refreshing the browser retains the device draft but requires reopening a cloud project or saving a new copy to establish a cloud link.
