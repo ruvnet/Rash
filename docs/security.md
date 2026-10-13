@@ -47,3 +47,11 @@ Static hosting must not contain API tokens or account credentials. An optional f
 `tests/ecosystem.test.js` exercises malformed local URIs, prototype-related lookup attempts, bounded controls, actual WASM execution and backend parity. The Rust tests must cover rejected dynamic execution, unsupported imports and bounded infinite loops. Browser tests must include malicious project text, import validation and host embed behavior. Recheck these boundaries whenever adding new node types, asset imports, network APIs, script features or persistence.
 
 Symbol regressions live in `tests/symbols.test.js`, `tests/symbol-render.test.js` and `tests/symbols-browser.mjs`. Check invalid references, cycles, nesting and expansion limits, transformed filter bounds, ID isolation, whole document persistence during scoped editing and cross origin player independence. These tests establish their named assertions only; they are not a complete Flash compatibility or independent security audit.
+
+## MCP trust boundaries
+
+The local MCP process stores validated project JSON in `RASH_MCP_STORE` or `~/.rash/projects`. It does not evaluate project scripts or accept arbitrary file paths. Seven tools use revision checks for updates, deletes and exports. Keep the store private to its operating system account. A local user with access to that directory can read its projects.
+
+The hosted adapter requires Sites authenticated user identity for project access and hashes that identity into an R2 namespace. Conditional writes prevent lost updates. Deletions replace records with tombstones that contain no project content. Deploy this adapter only behind Sites identity enforcement, never as a public Worker that trusts caller supplied identity headers. HTTP requests and rendered outputs are bounded. The interactive resource displays SVG in image contexts, never executable SVG markup.
+
+ChatGPT and Claude installations remain distinct trust boundaries. Installing a plugin grants its declared tools; no installation is implied by a passing browser harness. No credentials belong in exported projects or generated embed code.

@@ -8,3 +8,4 @@ test-results/
 .swarm/
 web/vendor/ruffle/*.wasm
 web/vendor/ruffle/*.js
+dist-mcp/
