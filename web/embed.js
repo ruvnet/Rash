@@ -37,7 +37,7 @@ export class RashPlayer extends HTMLElement {
     this.svg.addEventListener('pointercancel',()=>{this._gameInput={};});
     this.button.onclick = () => this.playing ? this.pause() : this.play();
     this.slider.addEventListener('input', () => { this.pause(); this.seek(Number(this.slider.value)); });
-    this._frame = 0; this.playing = false; this._request = 0; this._generation = 0;
+    this._frame = 0; this._clockFrame = 0; this.playing = false; this._request = 0; this._generation = 0;
   }
   connectedCallback() {
     this.shadowRoot.querySelector('.controls').hidden = !this.hasAttribute('controls');
@@ -52,7 +52,7 @@ export class RashPlayer extends HTMLElement {
   get project() { return this._project ? structuredClone(this._project) : null; }
   set project(value) {
     this.pause(); this._generation++; this._runtime?.dispose(); this._runtime = null;
-    this._project = validateProject(value); this._frame = 0; this._game=null; this._gameScene=null; this._gameInput={};
+    this._project = validateProject(value); this._frame = 0; this._clockFrame = 0; this._game=null; this._gameScene=null; this._gameInput={};
     this.svg.setAttribute('aria-label', this._project.name+(this._isGame()?'. Use arrow keys or touch to move.':''));
     this.svg.setAttribute('tabindex',this._isGame()?'0':'-1'); this.svg.style.touchAction=this._isGame()?'none':'manipulation';
     this.restart.hidden=!this._isGame(); this.slider.hidden=this._isGame();
@@ -121,30 +121,31 @@ export class RashPlayer extends HTMLElement {
   _error(error) { this.pause(); this.status.textContent = error.message; this.dispatchEvent(new CustomEvent('rash-error', { detail: { message: error.message } })); }
   _render() {
     if (!this._project) return;
-    renderScene(this.svg, this._gameScene||this._project, this._frame);
+    renderScene(this.svg, this._gameScene||this._project, this._frame, {clockFrame:this._clockFrame});
     this.slider.value = String(this._frame);
     this.output.textContent = `${(this._frame / this._project.fps).toFixed(1)} s`;
   }
   get currentFrame() { return this._frame; }
   _isGame(){return this._project?.nodes.some(n=>n.name==='player')&&this._project.nodes.some(n=>n.name.startsWith('energy-'));}
-  _resetGame(){this._game=null;this._gameScene=null;this._gameInput={};this._frame=0;this._render();}
-  seek(frame) { if (!this._project) return; this._frame = Math.max(0, Math.min(this._project.duration - 1, Math.round(Number(frame) || 0))); this._started = performance.now() - this._frame / this._project.fps * 1000; this._render(); }
+  _resetGame(){this._game=null;this._gameScene=null;this._gameInput={};this._frame=0;this._clockFrame=0;this._render();}
+  seek(frame) { if (!this._project) return; this._frame = Math.max(0, Math.min(this._project.duration - 1, Math.round(Number(frame) || 0))); this._clockFrame=this._frame;this._started = performance.now() - this._clockFrame / this._project.fps * 1000; this._render(); }
   play() {
     if (!this._project || this.playing) return;
     if(this._isGame()&&(!this._game||['won','lost'].includes(this._game.status))){this._gameScene=structuredClone(this._project);this._game=createGame(this._gameScene);}
-    if (this._frame >= this._project.duration - 1) this._frame = 0;
+    if (this._frame >= this._project.duration - 1&&!this.hasAttribute('loop')) { this._frame = 0; this._clockFrame = 0; }
     this.playing = true; this.button.textContent = 'Pause'; this.button.setAttribute('aria-label', 'Pause animation');
-    this._started = performance.now() - this._frame / this._project.fps * 1000;
+    this._started = performance.now() - this._clockFrame / this._project.fps * 1000;
     let previous=performance.now();
     const tick = time => {
       if (!this.playing || !this.isConnected) return;
-      if(this._game){const result=this._game.step((time-previous)/1000,this._gameInput);previous=time;this._frame=Math.floor((time-this._started)/1000*this._project.fps)%this._project.duration;this._render();if(result.status==='won'||result.status==='lost'){this.pause();this.dispatchEvent(new CustomEvent('rash-game-ended',{detail:result}));return;}this._request=requestAnimationFrame(tick);return;}
-      let frame = Math.floor((time - this._started) / 1000 * this._project.fps);
+      if(this._game){const result=this._game.step((time-previous)/1000,this._gameInput);previous=time;this._clockFrame=Math.floor((time-this._started)/1000*this._project.fps);this._frame=this._clockFrame%this._project.duration;this._render();if(result.status==='won'||result.status==='lost'){this.pause();this.dispatchEvent(new CustomEvent('rash-game-ended',{detail:result}));return;}this._request=requestAnimationFrame(tick);return;}
+      const clockFrame = Math.floor((time - this._started) / 1000 * this._project.fps);
+      let frame=clockFrame;
       if (frame >= this._project.duration) {
-        if (this.hasAttribute('loop')) { frame %= this._project.duration; this._started = time - frame / this._project.fps * 1000; }
-        else { this._frame = this._project.duration - 1; this._render(); this.pause(); this.dispatchEvent(new Event('rash-ended')); return; }
+        if (this.hasAttribute('loop')) frame %= this._project.duration;
+        else { this._frame = this._project.duration - 1; this._clockFrame=this._frame;this._render(); this.pause(); this.dispatchEvent(new Event('rash-ended')); return; }
       }
-      if (frame !== this._frame) { this._frame = frame; this._render(); }
+      if (frame !== this._frame||clockFrame!==this._clockFrame) { this._frame = frame; this._clockFrame=clockFrame;this._render(); }
       this._request = requestAnimationFrame(tick);
     };
     this._request = requestAnimationFrame(tick);
