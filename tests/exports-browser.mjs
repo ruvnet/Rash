@@ -128,17 +128,18 @@ try {
   const crossOrigin = await page.evaluate(async origin => {
     await import(`${origin}/embed.js`);
     const { createProject,addNode } = await import(`${origin}/core/model.js`);
-    const p=createProject('blank'),mesh=addNode(p,'mesh');p.script=`getNode("${mesh.id}").rotationY = 73; getNode("${mesh.id}").glow = 4; trace("embed-ready");`;
+    const p=createProject('blank'),mesh=addNode(p,'mesh');p.frameLabels=[{frame:7,name:'Reveal'}];p.script=`getNode("${mesh.id}").rotationY = 73; getNode("${mesh.id}").glow = 4; gotoAndStop("Reveal"); trace("embed-ready");`;
     const player=document.createElement('rash-player');document.body.append(player);
     const result=new Promise(resolve=>{
       player.addEventListener('rash-script',e=>resolve({ok:true,logs:e.detail.logs}),{once:true});
       player.addEventListener('rash-warning',e=>resolve({ok:false,message:e.detail.message}),{once:true});
       setTimeout(()=>resolve({ok:false,message:'script event timed out'}),18000);
     });
-    player.project=p;const event=await result;return {...event,node:player.project.nodes[0],faces:player.shadowRoot.querySelectorAll('[data-face-id]').length};
+    player.project=p;const event=await result;return {...event,node:player.project.nodes[0],frame:Number(player.shadowRoot.querySelector('input').value),faces:player.shadowRoot.querySelectorAll('[data-face-id]').length};
   },assets);
   assert.equal(crossOrigin.ok,true,JSON.stringify(crossOrigin));
   assert.equal(crossOrigin.node.rotationY,73);assert.equal(crossOrigin.node.glow,4);assert.ok(crossOrigin.faces>0);
+  assert.equal(crossOrigin.frame,7,'Embedded Rust/WASM scripts resolve named frame labels');
   assert.equal(errors.length,0,errors.join('\n'));
   console.log(JSON.stringify({browser:browserName,checks:['independent players','retained SVG nodes','play/pause','reduced motion','SVG XML','GIF decoded frames and timing','PDF embedded JPEG pixels','PNG bytes','JSON','HTML','cross-origin WASM worker with 3D/effect commands','projected mesh SVG','projected mesh raster pixels','animated camera embed','independent property timing embed','camera-only SVG sampling','raster camera pose parity'],mp4:result.mp4.bytes?'verified':'unsupported with actionable error',artifacts:exportDir},null,2));
 } finally { await browser.close(); await new Promise(r=>server.close(r)); await new Promise(r=>host.close(r)); }
