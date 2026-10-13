@@ -151,3 +151,16 @@ For host acceptance, create a project, display its SVG, play and seek, edit a la
 | Imported Flash content differs | Check Ruffle's upstream compatibility; full Flash and ActionScript parity is unfinished. |
 
 Open **Help and shortcuts** for in app guidance. For reproducible bug reports, include browser and device, the smallest project JSON that reproduces the problem, the steps, and the expected result. Remove private content before publishing a report.
+
+
+## Shared cloud projects in Studio
+
+Open https://rash-svg-studio.ruv.chatgpt.site/studio/ and sign in with the account authorized for the Rash private workspace. Choose **MCP → Manage cloud projects**. On mobile, open **More → MCP connections and setup → Manage cloud projects**.
+
+1. Select a saved project, confirm replacement of the current composition and choose **Open selected project**. Download any local work you need first.
+2. Edit with the full Studio controls. Device autosave does not update cloud storage.
+3. Reopen Cloud projects and choose **Save linked revision**. ChatGPT can now read the new revision through `rash_project_get`.
+4. If another editor saved first, the conflict preserves your local composition. Choose **Save as new cloud project** to retain both versions, or explicitly reopen the latest cloud project.
+5. To delete, select a project, choose **Delete selected project**, and confirm the named revision. The device composition is preserved.
+
+The public GitHub Studio provides a link to the authenticated Studio. Transfer public or local Claude projects with JSON download/import, then save as a new cloud project. No credentials are copied between origins. Refreshing the browser retains the device draft but requires reopening a cloud project or saving a new copy to establish a cloud link.

@@ -40,6 +40,8 @@ jobs:
       - run: npm run build:mcp-ui
       - run: npm run test:mcp-ui
       - run: RASH_BROWSER=webkit npm run test:mcp-ui
+      - run: npm run test:studio-cloud
+      - run: RASH_BROWSER=webkit npm run test:studio-cloud
       - run: npm run test:ui
       - run: npm run test:mobile
       - run: npm run test:workflows
@@ -55,6 +57,7 @@ jobs:
       - run: npm run test:rollback
       - run: npm run test:embed-game
       - run: node tests/exports-browser.mjs
+      - run: RASH_BROWSER=webkit node tests/exports-browser.mjs
       - run: node tests/runtime-browser.mjs
       - run: npm run build
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa

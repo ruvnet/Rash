@@ -165,3 +165,49 @@ test('private dashboard requires verified identity and supplies restrictive page
  assert.equal(page.headers.get('cache-control'), 'no-store');
  assert.match(await page.text(), /Private dashboard/);
 });
+
+test('private Studio authenticates every asset and allows only canonical GET/HEAD routes', async () => {
+ const assets = new Map([
+  ['index.html', { type: 'text/html; charset=utf-8', body: '<html>Full Studio</html>' }],
+  ['app.js', { type: 'text/javascript; charset=utf-8', body: 'export const studio=true;' }],
+  ['runtime/pkg/rash_runtime.wasm', { type: 'application/wasm', body: new Uint8Array([0,97,115,109]) }]
+ ]);
+ const worker = createWorker({ readStudioAsset: path => assets.get(path) });
+ const get = (path, identity = 'alice', method = 'GET') => worker.fetch(new Request(`https://rash.example${path}`, { method, headers: identity ? { 'oai-authenticated-user-id': identity } : {} }), {});
+ for (const path of ['/studio', '/studio/', '/studio/app.js', '/studio/runtime/pkg/rash_runtime.wasm']) {
+  assert.equal((await get(path, null)).status, 401);
+  assert.equal((await get(path, 'x'.repeat(513))).status, 401);
+ }
+ assert.equal((await get('/studio')).headers.get('location'), '/studio/');
+ for (const path of ['/studio/', '/studio/index.html']) {
+  const page = await get(path);
+  assert.equal(page.status, 200);
+  assert.equal(await page.text(), '<html>Full Studio</html>');
+  assert.equal(page.headers.get('cache-control'), 'no-store');
+  assert.equal(page.headers.get('cross-origin-resource-policy'), 'same-origin');
+  assert.match(page.headers.get('content-security-policy'), /script-src 'self' 'wasm-unsafe-eval'/);
+  assert.match(page.headers.get('content-security-policy'), /connect-src 'self'/);
+ }
+ assert.equal((await get('/studio/app.js')).headers.get('content-type'), 'text/javascript; charset=utf-8');
+ const wasm = await get('/studio/runtime/pkg/rash_runtime.wasm');
+ assert.equal(wasm.headers.get('content-type'), 'application/wasm');
+ assert.deepEqual([...new Uint8Array(await wasm.arrayBuffer())], [0,97,115,109]);
+ assert.equal(await (await get('/studio/app.js', 'alice', 'HEAD')).text(), '');
+ assert.equal((await get('/studio/', 'alice', 'POST')).status, 405);
+ for (const path of ['/studio/%61pp.js', '/studio/%2fapp.js', '/studio//app.js', '/studio/__proto__', '/studio/no-file', '/studio/build.mjs', '/studio/../cloud/store.js']) assert.equal((await get(path)).status, 404, path);
+ const legacy = await get('/studio/legacy.html');
+ assert.equal(legacy.status, 302);
+ assert.equal(legacy.headers.get('location'), 'https://ruvnet.github.io/Rash/legacy.html');
+});
+
+test('Studio build allowlist includes runtime dependencies and excludes server sources and large legacy player', async () => {
+ const { collectStudioAssets } = await import('../cloud/assets.mjs');
+ const assets = await collectStudioAssets();
+ for (const path of ['index.html','app.js','core/model.js','styles/studio.css','vendor/three-vector.js','runtime/worker.js']) assert.ok(assets[path]?.body, path);
+ for (const path of ['runtime/pkg/rash_runtime.wasm','vendor/ruvector/ruvector_wasm_bg.wasm']) {
+  assert.equal(assets[path].type, 'application/wasm');
+  assert.equal(Buffer.from(assets[path].base64, 'base64').subarray(0,4).toString('hex'), '0061736d');
+ }
+ assert.ok(!Object.keys(assets).some(path => path.startsWith('vendor/ruffle/') || path.endsWith('.mjs') || path === 'legacy.html'));
+ assert.equal(Object.hasOwn(assets, '__proto__'), false);
+});

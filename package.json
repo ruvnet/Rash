@@ -34,7 +34,8 @@
     "test:mcp": "node --test tests/mcp*.test.js",
     "test:mcp-ui": "node tests/mcp-ui-browser.mjs",
     "build:mcp-ui": "node web/mcp/build.mjs",
-    "build:mcp-cloud": "node scripts/build-mcp-cloud.mjs"
+    "build:mcp-cloud": "node scripts/build-mcp-cloud.mjs",
+    "test:studio-cloud": "node tests/studio-cloud-browser.mjs"
   },
   "engines": {
     "node": ">=22"

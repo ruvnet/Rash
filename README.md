@@ -29,7 +29,9 @@ npm run mcp
 
 The Claude plugin launches this server automatically when installed. See the [user guide](docs/user-guide.md#chatgpt-mcp-and-claude), [cloud adapter](cloud/README.md), and [MCP architecture](docs/adr/010-mcp-animation-workspace.md).
 
-Validation: 145 unit tests and nine MCP browser checks in each of Chromium and WebKit pass. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
+Validation: 176 unit tests and nine MCP browser checks in each of Chromium and WebKit pass. All seven hosted tools were also exercised through a connected ChatGPT plugin. Native visual acceptance and live Claude host acceptance remain separate checks.
+
+The [authenticated Studio](https://rash-svg-studio.ruv.chatgpt.site/studio/) now opens and saves the same hosted MCP projects. Choose **MCP → Manage cloud projects** to browse, open, save a revision, create a copy or delete with confirmation. Device autosave stays local; cloud saves are explicit. Conflicts preserve the editor draft. Public Studio and local Claude storage remain separate. See [shared storage architecture](docs/adr/011-shared-cloud-studio.md) and [export acceptance](docs/export-acceptance.md).
 
 ## Your next move
 

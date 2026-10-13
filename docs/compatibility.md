@@ -26,8 +26,8 @@ This document describes the current source, with precise limits. Release accepta
 | Game template | A small interactive collection game | Not a complete physics or general Flash game engine |
 | Template search | Real optional RuVector WASM cosine search, local fallback | Deterministic hashed lexical vectors; not learned semantic embeddings |
 | MetaHarness | Pinned optional static repository scorecard plus independent local tests | No autonomous evolution or demonstrated self learning |
-| Persistence | Browser local autosave and JSON backup | No account, cloud sync or remote collaboration |
-| Cloudflare | No production Cloudflare dependency | Authentication and tenant storage require a separate implementation |
+| Persistence | Browser autosave, JSON backup, local MCP filesystem storage and private hosted MCP project storage | Authenticated Studio uses the hosted MCP store through explicit revision checked saves; public browser and local stdio stores remain separate |
+| Cloudflare | Hosted MCP Worker with R2 storage scoped to verified Sites identity | Requires the trusted Sites authentication gateway; do not expose the Worker directly with caller supplied identity headers |
 | Claude package | Local stdio MCP server, seven tools, project resources and authoring skills | Host installation and interactive view require separate acceptance; local and cloud stores are separate |
 | MCP App | Self contained SVG view with playback, editing and exports | Browser bridge tests do not prove ChatGPT or Claude host acceptance |
 | Interface | SVG stage with HTML editor controls | Controls are accessible HTML, not a recreation of a whole browser UI in SVG |
@@ -61,3 +61,67 @@ Symbol validation checks both stored definitions and recursively expanded instan
 Run `npm test`, `cargo test`, `npm run test:ui`, `npm run test:symbols`, `RASH_BROWSER=webkit npm run test:symbols` and `node scripts/metaharness-evaluate.mjs` for the affected implementation. Inspect the generated artifacts with independent readers where practical. A release must label untested browsers and unimplemented compatibility explicitly.
 
 `tests/symbols.test.js`, `tests/symbol-render.test.js` and `tests/symbols-browser.mjs` cover the graphic symbol contract at model, renderer/export and visible application boundaries. Their source defines the checks; release evidence must record actual results for the candidate commit.
+
+
+## Executable scripting compatibility matrix
+
+Run `node --test tests/compatibility.test.js` or `npm test`. The fixture corpus in
+[`tests/fixtures/compatibility.json`](../tests/fixtures/compatibility.json) executes
+against the committed Rust WASM binary through the same ABI adapter as the browser
+worker. It checks exact logs and commands, including documented differences from
+ActionScript. No JavaScript interpreter substitute is used.
+
+| Contract | Fixture IDs | Required result |
+| --- | --- | --- |
+| Literals and declarations | `variables` | Exact primitive trace output |
+| Branches, loops and short circuiting | `control-flow`, `short-circuit` | Deterministic result; skipped branches are not executed |
+| Math and numeric casts | `math-casts` | Explicit 32 bit wrapping and numeric result |
+| Scene lookup and mutation | `lookup` | Exact ordered commands targeting the expected node ID |
+| Alpha aliases and clamping | `alpha-aliases` | `_alpha=25` emits opacity 0.25; alpha above one clamps |
+| Timeline controls | `timeline` | Ordered play, stop and explicit frame commands; frame zero remains zero |
+| Stage context | `stage` | Dimensions, FPS and current frame are read from context |
+| 3D and effect properties | `motion` | Six allowlisted property commands |
+| Equality difference | `strict-equality-only` | Both numeric/string comparisons are false; no AS loose equality claim |
+| Declaration differences | `informational-types` | `int` annotation leaves 2.5 unchanged; `const` reassignment succeeds |
+| Unsupported language | `classes`, `functions`, `packages`, `imports`, `arrays`, `objects`, `exceptions` | Error with zero scene commands |
+| Unsupported Flash behavior | `events`, `display-list`, `directional-scale` | Error with zero scene commands |
+| Host and resource boundaries | `network`, `eval`, `external-interface`, `unsafe-color`, `nonfinite`, `instruction-budget` | Error with zero scene commands |
+| Invocation isolation | Test `invocation state does not persist` | Variables and mutated context do not leak into the next invocation |
+| Source budget | Test `source limit rejects before execution` | Oversized source emits no scene commands |
+
+Every rejected fixture is preceded by `hero.x=99;`. An error must return an empty
+command list, including when failure occurs after parsing. This tests command
+atomicity at the interpreter boundary. Studio validation, document rollback,
+worker cancellation, and undo remain separate browser acceptance checks.
+
+This corpus currently has **29 checks**, all passing against the committed binary
+in the implementation workspace on 2026-10-13 UTC. That is contract coverage,
+not a percentage of Flash compatibility. Source changes require rebuilding WASM
+before rerunning these checks. Native Rust tests and WASM checks must both pass;
+one does not prove that the other artifact is current.
+
+## Remaining compatibility gates
+
+1. **Legacy content corpus.** The existing `tests/runtime-browser.mjs` loads a
+   non-script orange-stage SWF and checks player isolation. It does not establish
+   AVM1 or AVM2 script compatibility, audio/video fidelity, fonts, or game behavior.
+   Add redistributable, versioned fixtures with expected frames and interactions
+   before making broader legacy claims. Preserve the separate isolated Ruffle
+   player rather than silently converting its results into SVG compatibility.
+2. **Authoring and playback semantics.** Define and test MovieClip lifecycle,
+   event dispatch, display-list construction, button states and independent
+   clocks before claiming Flash symbol parity. Current graphic symbols are
+   synchronized timelines. Function syntax alone would not satisfy this gate.
+3. **Language scope.** Decide whether expanded source authoring targets a strict
+   RashScript contract or an ActionScript implementation. Full AS compatibility
+   needs its type system, object model, bytecode/runtime and Flash APIs; accepting
+   familiar syntax is insufficient. Maintain explicit rejection until a feature
+   has defined semantics and executable cases.
+4. **Host and media acceptance.** Real ChatGPT and Claude interactive acceptance,
+   physical iPhone/Android editing, and content-specific export verification must
+   be recorded separately. Browser harness results cannot substitute for these
+   environments. Native SVG exports do not execute project scripts or game input.
+
+The next compatibility acceptance gate is a licensed AVM1 and AVM2 fixture pair
+with reproducible expected playback, plus a corresponding Studio test that
+explicitly rejects unsupported source instead of silently changing its meaning.

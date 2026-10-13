@@ -27,9 +27,25 @@ async function readJSON(request) {
 }
 // Sites must strip client supplied identity headers and inject its verified identity.
 // Do not expose this worker directly on an unprotected workers.dev route.
-export function createWorker({ readUI, readPage } = {}) {
+export function createWorker({ readUI, readPage, readStudioAsset } = {}) {
  return { async fetch(request, env) {
   const url = new URL(request.url);
+  if (url.pathname === '/studio' || url.pathname.startsWith('/studio/')) {
+   const identity = request.headers.get('oai-authenticated-user-id');
+   if (!identity || !identity.trim() || identity.length > 512) return response(401, { error: 'Authenticated Sites identity required' });
+   if (request.method !== 'GET' && request.method !== 'HEAD') return response(405, { error: 'Use GET or HEAD for Studio' }, { allow: 'GET, HEAD' });
+   if (url.pathname === '/studio') return new Response(null, { status: 308, headers: { ...headers, location: '/studio/' } });
+   // Match canonical allowlisted paths only. Never decode or resolve user paths into a filesystem.
+   if (/%|\\|(?:^|\/)\.{1,2}(?:\/|$)|\/\//.test(url.pathname)) return response(404, { error: 'Not found' });
+   if (url.pathname === '/studio/legacy.html') return new Response(null, { status: 302, headers: { ...headers, location: 'https://ruvnet.github.io/Rash/legacy.html' } });
+   const asset = await readStudioAsset?.(url.pathname.slice('/studio/'.length) + (url.pathname.endsWith('/') ? 'index.html' : ''));
+   if (!asset) return response(404, { error: 'Not found' });
+   return new Response(request.method === 'HEAD' ? null : asset.body, { headers: {
+    ...headers, 'content-type': asset.type,
+    'content-security-policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; worker-src 'self' blob:; img-src 'self' blob: data:; media-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self' https://chatgpt.com https://chat.openai.com https://claude.ai",
+    'referrer-policy': 'no-referrer', 'cross-origin-resource-policy': 'same-origin'
+   } });
+  }
   if (url.pathname === '/' && request.method === 'GET' && readPage) {
    const identity = request.headers.get('oai-authenticated-user-id');
    if (!identity || !identity.trim() || identity.length > 512) return response(401, { error: 'Authenticated Sites identity required' });
