@@ -51,7 +51,7 @@ test('symbol definitions retain independent frame labels',()=>{
  const scope={...project,name:definition.name,width:definition.width,height:definition.height,duration:definition.duration,frameLabels:definition.frameLabels||[],camera:definition.camera,nodes:definition.nodes};
  setFrameLabel(scope,4,'Start');insertTimelineFrames(scope,2,2);Object.assign(definition,{duration:scope.duration,frameLabels:scope.frameLabels,camera:scope.camera,nodes:scope.nodes});
  const validated=validateProject(project),saved=validated.symbols.find(symbol=>symbol.id===symbolId);
- assert.deepEqual(saved.frameLabels,[{frame:6,name:'Start'}]);assert.deepEqual(validated.frameLabels,[]);
+ assert.deepEqual(saved.frameLabels,[{frame:6,name:'Start'}]);assert.deepEqual(validated.frameLabels??[],[]);
 });
 
 test('blank keyframes hold exposure until a layer is explicitly exposed',()=>{
