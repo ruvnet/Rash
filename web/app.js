@@ -27,7 +27,7 @@ function refreshEditingScope(){
  if(editScopeId&&!editingDefinition()){editScopeId=null;scopeTrail=[];}
  if(!editScopeId){project=rootProject;return;}
  project={};
- for(const key of Object.keys(rootProject))Object.defineProperty(project,key,{enumerable:true,configurable:true,
+ for(const key of new Set([...Object.keys(rootProject),...scopedFields]))Object.defineProperty(project,key,{enumerable:true,configurable:true,
   get:()=>key==='background'?'transparent':key==='symbols'?symbolDependencies():scopedFields.has(key)?editingDefinition()[key]:rootProject[key],
   set:value=>{if(key==='background')return;if(scopedFields.has(key))editingDefinition()[key]=value;else rootProject[key]=value;}});
 }
