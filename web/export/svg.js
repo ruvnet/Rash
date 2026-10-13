@@ -95,15 +95,20 @@ export function animatedSVG(input) {
  * changing mesh projections are sampled; a symbol never duplicates whole scenes. */
 function animatedSymbolSVG(p){
   const symbols=new Map(p.symbols.map(s=>[s.id,s])),entries=[];
+  const gcd=(a,b)=>{while(b)[a,b]=[b,a%b];return a;};
+  let exportDuration=p.duration,hasMovieClips=false;
+  const periods=(scene,seen=new Set())=>{for(const node of scene.nodes)if(node.visible&&node.type==='symbol'){const definition=symbols.get(node.symbolId);if(node.playback==='movieclip'){if(node.startFrame>0)throw new Error('Animated SVG cannot repeat a delayed MovieClip. Set its Start frame to 1 or use a parent-synchronized playback mode.');hasMovieClips=true;exportDuration=exportDuration/gcd(exportDuration,definition.duration)*definition.duration;if(exportDuration>36000)throw new Error('MovieClip common cycle exceeds the 36,000 frame SVG export limit. Shorten the scene or symbol timelines.');}if(!seen.has(definition.id)){const next=new Set(seen);next.add(definition.id);periods(definition,next);}}};
+  periods(p);
   const hasCameraMotion=camera=>camera.keyframes.some(key=>CAMERA_PROPERTIES.some(property=>Number.isFinite(key[property])));
-  function describe(scene,path=[],clock=frame=>frame,clockMoves=p.duration>1){
+  function describe(scene,path=[],clock=frame=>frame%p.duration,clockMoves=exportDuration>1){
     return scene.nodes.filter(node=>node.visible).map(node=>{
       const fullPath=[...path,node.id],prefix=instancePrefix('rash-export',fullPath);
       const geometryMoves=node.type==='mesh'&&clockMoves&&(hasCameraMotion(scene.camera)||node.keyframes.some(key=>['width','height','rotationX','rotationY','z'].some(property=>Object.hasOwn(key,property))));
       const entry={node,scene,clock,clockMoves,path:fullPath,prefix,geometryMoves,moving:clockMoves&&node.keyframes.length>0};entries.push(entry);
       if(node.type==='symbol'){
         const definition=symbols.get(node.symbolId);entry.definition=definition;
-        entry.children=describe(definition,fullPath,frame=>evaluateSymbolFrame(node,clock(frame),definition),clockMoves&&node.playback!=='single'&&definition.duration>1);
+        const childMoves=node.playback==='movieclip'?definition.duration>1:clockMoves&&node.playback!=='single'&&definition.duration>1;
+        entry.children=describe(definition,fullPath,frame=>evaluateSymbolFrame(node,clock(frame),definition,frame),childMoves);
       }
       return entry;
     });
@@ -112,22 +117,22 @@ function animatedSymbolSVG(p){
   const staticBytes=entries.reduce((sum,{node:n})=>sum+(n.text?.length||0)*6+(n.text?.split('\n').length||0)*40+(n.d?.length||0)+(n.type==='mesh'?MESH_TRIANGLES[n.primitive]*320:0)+(maskReference(n)?500:0)+1000,0);
   if(staticBytes>16_000_000)throw new Error('SVG scene exceeds the 16 MB output budget. Reduce scene complexity.');
   if(!moving)return sceneToSVG(p,0);
-  if(moving*p.duration>500000)throw new Error('SVG animation exceeds the 500,000 layer-frame export budget. Shorten the timeline or reduce animated layers.');
-  const work=entries.reduce((sum,e)=>sum+(e.moving?(p.duration+1)*e.node.keyframes.length*ANIMATED_PROPERTIES.length:0)+(e.geometryMoves?p.duration*e.scene.camera.keyframes.length*CAMERA_PROPERTIES.length:0),0);
+  if(moving*exportDuration>500000)throw new Error('SVG animation exceeds the 500,000 layer-frame export budget. Shorten the timeline or reduce animated layers.');
+  const work=entries.reduce((sum,e)=>sum+(e.moving?(exportDuration+1)*e.node.keyframes.length*ANIMATED_PROPERTIES.length:0)+(e.geometryMoves?exportDuration*e.scene.camera.keyframes.length*CAMERA_PROPERTIES.length:0),0);
   if(work>5_000_000)throw new Error('SVG animation exceeds the evaluation budget. Reduce keyframes or shorten the timeline.');
-  const triangleFrames=entries.reduce((sum,e)=>sum+(e.geometryMoves?MESH_TRIANGLES[e.node.primitive]*p.duration:0),0);
+  const triangleFrames=entries.reduce((sum,e)=>sum+(e.geometryMoves?MESH_TRIANGLES[e.node.primitive]*exportDuration:0),0);
   if(triangleFrames>200_000)throw new Error('3D SVG animation exceeds the 200,000 triangle-frame export budget. Shorten the timeline or use fewer 3D layers.');
   const movingMasks=entries.filter(e=>e.moving&&maskReference(e.node)).length;
-  if(staticBytes+(moving+movingMasks)*(p.duration+1)*256+triangleFrames*320>16_000_000)throw new Error('SVG animation exceeds the 16 MB output budget. Reduce timeline or scene complexity.');
-  const frames=Array.from({length:p.duration+1},(_,frame)=>Math.min(frame,p.duration-1));
+  if(staticBytes+(moving+movingMasks)*(exportDuration+1)*256+triangleFrames*320>16_000_000)throw new Error('SVG animation exceeds the 16 MB output budget. Reduce timeline or scene complexity.');
+  const frames=Array.from({length:exportDuration+1},(_,frame)=>hasMovieClips&&frame===exportDuration?0:Math.min(frame,exportDuration-1));
   // Preserve the full numeric frame ratio. Rounding to eight decimals can
   // move discrete boundaries beyond their authored frame. Browser SMIL seek
   // clocks can still truncate requested times; interior-frame probes avoid that.
-  const timeAt=frame=>String(frame/p.duration);
+  const timeAt=frame=>String(frame/exportDuration);
   const times=frames.map((_,i)=>timeAt(i)).join(';');
   const animate=(values,attribute,type)=>{
     if(values.every(value=>value===values[0]))return '';
-    return `<${type?'animateTransform':'animate'} attributeName="${attribute}"${type?` type="${type}"`:''} values="${esc(values.join(';'))}" keyTimes="${times}" dur="${p.duration/p.fps}s" calcMode="discrete" repeatCount="indefinite"/>`;
+    return `<${type?'animateTransform':'animate'} attributeName="${attribute}"${type?` type="${type}"`:''} values="${esc(values.join(';'))}" keyTimes="${times}" dur="${exportDuration/p.fps}s" calcMode="discrete" repeatCount="indefinite"/>`;
   };
   let effects='';
   function nodeSVG(entry){
@@ -139,11 +144,11 @@ function animatedSymbolSVG(p){
       const size=n=>symbolScale(n,definition);
       body=`<g data-symbol-content="${esc(node.symbolId)}" transform="scale(${size(initial)})">${animate(samples.map(size),'transform','scale')}${children.map(nodeSVG).join('')}</g>`;
     }else if(node.type==='mesh'){
-      body=geometryMoves?Array.from({length:p.duration},(_,index)=>{
+      body=geometryMoves?Array.from({length:exportDuration},(_,index)=>{
         const start=timeAt(index),end=timeAt(index+1);
-        const values=index===0?'inline;none;none':index===p.duration-1?'none;inline;inline':'none;inline;none;none';
-        const keyTimes=index===0?`0;${end};1`:index===p.duration-1?`0;${start};1`:`0;${start};${end};1`;
-        return `<g data-mesh-frame="${index}" display="${index===0?'inline':'none'}"><animate attributeName="display" values="${values}" keyTimes="${keyTimes}" dur="${p.duration/p.fps}s" calcMode="discrete" repeatCount="indefinite"/>${faces(samples.length===1?initial:samples[index],index)}</g>`;
+        const values=index===0?'inline;none;none':index===exportDuration-1?'none;inline;inline':'none;inline;none;none';
+        const keyTimes=index===0?`0;${end};1`:index===exportDuration-1?`0;${start};1`:`0;${start};${end};1`;
+        return `<g data-mesh-frame="${index}" display="${index===0?'inline':'none'}"><animate attributeName="display" values="${values}" keyTimes="${keyTimes}" dur="${exportDuration/p.fps}s" calcMode="discrete" repeatCount="indefinite"/>${faces(samples.length===1?initial:samples[index],index)}</g>`;
       }).join(''):faces(initial,0);
     }else{
       const tag=node.type==='ellipse'?'ellipse':node.type==='text'?'text':node.type==='path'?'path':'rect',shapeAttrs=nodeAttributes(initial);
