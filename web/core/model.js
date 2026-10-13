@@ -514,7 +514,7 @@ export function removeNodeMask(project,id){
 }
 export function createProject(template='orbit',preset='web'){
  const size=presets.find(p=>p.id===preset)||presets[0];
- const p={version:1,...size,id:uid(),name:templates.find(t=>t.id===template)?.name.split(' / ')[0]||'Untitled',fps:30,duration:240,frameLabels:[],background:'#111522',camera:{...DEFAULT_CAMERA,keyframes:[]},nodes:[],script:'// RashScript: a bounded ActionScript-inspired runtime\ntrace("Hello, Rash.");\n'};
+ const p={version:1,...size,id:uid(),name:templates.find(t=>t.id===template)?.name.split(' / ')[0]||'Untitled',fps:30,duration:240,background:'#111522',camera:{...DEFAULT_CAMERA,keyframes:[]},nodes:[],script:'// RashScript: a bounded ActionScript-inspired runtime\ntrace("Hello, Rash.");\n'};
  const W=p.width,H=p.height,s=Math.min(W/1280,H/720);
  const node=(name,type,x,y,w,h,extra={})=>{const n=normalizeNode({id:uid(),name,type,x:x*W/1280,y:y*H/720,width:w*W/1280,height:h*H/720,...extra});p.nodes.push(n);return n;};
  const text=(name,txt,x,y,size,color='#f3f1ec')=>node(name,'text',x,y,1000,100,{text:txt,fontSize:size*s,fill:color,fontWeight:700});
