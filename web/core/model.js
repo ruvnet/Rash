@@ -47,11 +47,12 @@ export function normalizeBezier(value){return Array.isArray(value)&&value.length
 export function normalizeSpatial(value){
  if(value===undefined)return undefined;
  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Spatial motion handles must be an object');
+ if(value.orient!==undefined&&typeof value.orient!=='boolean')throw new Error('Spatial auto-orient must be a boolean');
  const pair=(handle,label)=>{
   if(!Array.isArray(handle)||handle.length!==2||!handle.every(Number.isFinite))throw new Error(`Spatial ${label} handle must contain two finite offsets`);
   return handle.map(offset=>finite(offset,0,-MAX_SPATIAL_OFFSET,MAX_SPATIAL_OFFSET));
  };
- return {out:pair(value.out,'out'),in:pair(value.in,'in')};
+ return {out:pair(value.out,'out'),in:pair(value.in,'in'),...(value.orient===true?{orient:true}:{})};
 }
 function normalizeTiming(value){const timing={easing:easings.has(value?.easing)?value.easing:'easeInOut'};if(timing.easing==='bezier')timing.bezier=normalizeBezier(value?.bezier);return timing;}
 function timingSource(key,property){return property!=='all'&&key?.curves&&typeof key.curves==='object'&&!Array.isArray(key.curves)&&Object.hasOwn(key.curves,property)?key.curves[property]||key:key;}
@@ -361,6 +362,19 @@ export function ease(t,kind='easeInOut',bezier){
  if(kind==='elastic')return 2**(-10*t)*Math.sin((t*10-.75)*(2*Math.PI/3))+1;
  return kind==='linear'?t:kind==='easeIn'?t*t:kind==='easeOut'?1-(1-t)*(1-t):kind==='step'?0:t*t*(3-2*t);
 }
+const cubicPoint=(a,b,c,d,t)=>{const u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d;};
+function spatialTangentAngle(x0,y0,x1,y1,x2,y2,x3,y3,t,fallback){
+ const u=1-t;
+ let dx=3*u*u*(x1-x0)+6*u*t*(x2-x1)+3*t*t*(x3-x2);
+ let dy=3*u*u*(y1-y0)+6*u*t*(y2-y1)+3*t*t*(y3-y2);
+ if(Math.hypot(dx,dy)<1e-9){
+  const delta=1e-4,a=t>=0&&t<=1?Math.max(0,t-delta):t-delta,b=t>=0&&t<=1?Math.min(1,t+delta):t+delta;
+  dx=cubicPoint(x0,x1,x2,x3,b)-cubicPoint(x0,x1,x2,x3,a);
+  dy=cubicPoint(y0,y1,y2,y3,b)-cubicPoint(y0,y1,y2,y3,a);
+ }
+ if(Math.hypot(dx,dy)<1e-9){dx=x3-x0;dy=y3-y0;}
+ return Math.hypot(dx,dy)<1e-9?boundedProperty(fallback,'rotation',0):Math.atan2(dy,dx)*180/Math.PI;
+}
 export function evaluateNode(node,frame){
  const n={...node}; const keys=node.keyframes||[];
  for(const prop of ANIMATED_PROPERTIES){
@@ -376,13 +390,14 @@ export function evaluateNode(node,frame){
  let previousPosition={frame:0,x:node.x,y:node.y};
  for(const next of keys){
   if(!Number.isFinite(next.x)&&!Number.isFinite(next.y))continue;
-  if(next.spatial&&frame>=previousPosition.frame&&frame<next.frame){
+  if(next.spatial&&frame>=previousPosition.frame&&(frame<next.frame||(frame===next.frame&&next.spatial.orient===true))){
    const handles=normalizeSpatial(next.spatial),timing=normalizeTiming(next);
-   const t=ease((frame-previousPosition.frame)/(next.frame-previousPosition.frame),timing.easing,timing.bezier),u=1-t;
+   const t=frame===next.frame?1:ease((frame-previousPosition.frame)/(next.frame-previousPosition.frame),timing.easing,timing.bezier);
    const x1=previousPosition.x+handles.out[0],y1=previousPosition.y+handles.out[1];
    const x2=next.x+handles.in[0],y2=next.y+handles.in[1];
-   n.x=boundedProperty(u*u*u*previousPosition.x+3*u*u*t*x1+3*u*t*t*x2+t*t*t*next.x,'x',node.x);
-   n.y=boundedProperty(u*u*u*previousPosition.y+3*u*u*t*y1+3*u*t*t*y2+t*t*t*next.y,'y',node.y);
+   n.x=boundedProperty(cubicPoint(previousPosition.x,x1,x2,next.x,t),'x',node.x);
+   n.y=boundedProperty(cubicPoint(previousPosition.y,y1,y2,next.y,t),'y',node.y);
+   if(handles.orient)n.rotation=boundedProperty(spatialTangentAngle(previousPosition.x,previousPosition.y,x1,y1,x2,y2,next.x,next.y,t,n.rotation),'rotation',node.rotation);
    break;
   }
   previousPosition={frame:next.frame,x:next.x,y:next.y};
