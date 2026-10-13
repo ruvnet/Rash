@@ -97,7 +97,7 @@ export class RashPlayer extends HTMLElement {
         if (generation !== this._generation || !this.isConnected) { runtime.dispose(); return; }
         this._runtime = runtime;
         const p = structuredClone(this._project);
-        const result = await this._runtime.run(p.script, { frame: this._frame, fps: p.fps, width: p.width, height: p.height, nodes: p.nodes });
+        const result = await this._runtime.run(p.script, { frame: this._frame, frameLabels: p.frameLabels || [], fps: p.fps, width: p.width, height: p.height, nodes: p.nodes });
         if (generation !== this._generation) return;
         if (result.error) throw new Error(result.error);
         for (const command of result.commands || []) {
