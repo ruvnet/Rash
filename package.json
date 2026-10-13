@@ -1,6 +1,6 @@
 {
   "name": "rash-studio",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "A Rust and SVG animation studio for the open web",
@@ -14,6 +14,7 @@
     "build": "node scripts/build.mjs",
     "build:wasm": "sh scripts/build-wasm.sh",
     "bench": "node scripts/benchmark.mjs",
+    "bench:symbols": "node scripts/benchmark-symbols.mjs",
     "test:mobile": "node tests/mobile-browser.mjs",
     "test:workflows": "node tests/workflows-browser.mjs",
     "test:embed-game": "node tests/embed-game-browser.mjs",
@@ -27,7 +28,8 @@
     "header:generate": "node scripts/generate-header.mjs",
     "test:header": "node tests/header-browser.mjs",
     "readme:generate": "node scripts/generate-readme-art.mjs",
-    "test:readme-art": "node tests/readme-art-browser.mjs"
+    "test:readme-art": "node tests/readme-art-browser.mjs",
+    "test:symbols": "node tests/symbols-browser.mjs"
   },
   "engines": {
     "node": ">=22"

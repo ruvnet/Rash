@@ -2,10 +2,10 @@
   "generator": "node scripts/generate-examples.mjs",
   "sourceHashes": {
     "scripts/generate-examples.mjs": "0d5eb9b5303c9f7bdd661e50c9fcb4be58da2ee2487c6f2655b5e2ac90f939ba",
-    "web/core/model.js": "cd55e468b51400fff35194d0a283aa7adfa81f043b769a14cf1a6ff3a62667e3",
-    "web/core/renderer.js": "e20763a7c183547394bc4caca14be822888920e0be1d9b467d87cc029ea32202",
+    "web/core/model.js": "7c59f1b78f12bb70f28d469252e57bf2c19045379184bb032477e04b1941488c",
+    "web/core/renderer.js": "481df60953f7eaab5bcd73ad4d9d23fd3fdcaee49d98b6064d9a9c32edf3e158",
     "web/core/three-svg.js": "b46a8caed46a0029f15e20716361c31e23aa82f11727caeba182b36c1c2c27b1",
-    "web/export/svg.js": "f7939d7e8248d564c2ca1269edd1dff9115963a59d357c0b7723a16096882c7f",
+    "web/export/svg.js": "2b38891ae8cb83d7e67ab1ff740bbb41f14eed428ed2b156421187bf625b2c86",
     "web/vendor/three-vector.js": "872a2955a4df0d57c09adefc9249cbd7e9acc179b51df2cf46d9f0a96b396f48"
   },
   "examples": [

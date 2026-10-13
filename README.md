@@ -11,13 +11,13 @@
 
 **Ideas in motion. Built for the open web.**
 
-[Open the studio](https://ruvnet.github.io/Rash/) · [Compatibility](docs/compatibility.md) · [Architecture](docs/adr/001-svg-scene-and-worker-runtime.md) · [Security](docs/security.md)
+[Open the studio](https://ruvnet.github.io/Rash/) · [Compatibility](docs/compatibility.md) · [Flash parity plan](docs/flash-parity.md) · [Architecture](docs/adr/001-svg-scene-and-worker-runtime.md) · [Security](docs/security.md)
 
 Rash is an open source SVG animation studio with a Rust/WebAssembly scripting runtime, a visual timeline, and portable JavaScript embeds. It brings the stage, layers, tools, properties and frame based workflow of classic Flash into a responsive browser editor.
 
 The twenty second header tours design, motion, 3D and publishing. It is a bespoke, script free SVG using Rash’s production geometry projection, with a static reduced motion fallback. It is not an editor project; the six studies below include editable source and unmodified system exports. Reproduce it with `npm run header:generate`, then verify with `npm run test:header`.
 
-**Status: experimental v0.4.0.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
+**Status: experimental v0.5.0.** Native Rash scripting implements a documented ActionScript inspired subset. It is **not complete ActionScript or Flash API compatibility**. Existing SWFs use a separate, optional Ruffle Rust/WASM compatibility player, with upstream compatibility limits. Source `.as` is not compiled to SWF. See the [compatibility matrix](docs/compatibility.md) and [UI acceptance audit](docs/ui-acceptance.md).
 
 ## From a first move to motion graphics
 
@@ -129,12 +129,13 @@ npm run test:examples
 | Capability | Implementation |
 | :--- | :--- |
 | Authoring | SVG stage, 2D vectors and Three.js box/sphere/torus/pyramid layers, inspector, layers, history, zoom |
+| Symbols | Shared graphic definitions, nested timelines, loop/once/single frame instances, scoped editing and full document history |
 | Animation | Editable motion presets, stagger, per property Bezier curves, animated cameras, bounce/elastic easing, 3D rotation, animated rectangle/ellipse masks, blur, glow, blend modes |
 | Templates | Mask reveal, Beyond 3D motion, orbital product story, launch, social story, kinetic typography, collector game, blank |
 | Native scripts | Rust parser/interpreter in a dedicated worker; typed variables, arithmetic, conditions, loops, trace, scene properties, timeline controls |
 | Legacy content | Isolated, optional self hosted Ruffle SWF player; no universal compatibility claim |
 | Search | Lazy loaded real RuVector WASM, deterministic lexical feature vectors, explicit JavaScript fallback |
-| Resources | Allowlisted local `rash://project/current`, `rash://node/ID`, `rash://template/orbit`, `rash://help/welcome` |
+| Resources | Allowlisted local `rash://project/current`, `rash://node/ID`, `rash://symbol/ID`, `rash://template/orbit`, `rash://help/welcome` |
 | Exports | Animated SVG, GIF, PNG, raster PDF, self contained animated HTML, project JSON, browser supported MP4 |
 | Embedding | Independent `<rash-player>` instances, shadow DOM styles, responsive layout, controls, reduced motion |
 | Developer tools | Claude plugin manifest, marketplace, author/verify skills, MetaHarness evidence script |
@@ -150,13 +151,21 @@ GIF is capped at 640 pixels and 120 sampled frames. MP4 is a real time browser r
 
 The four workflow illustrations in this README explain authoring, exports, embeds and scripting. They are editorial SVG artwork, separate from the six editable system exports above. Together they add **21.5 KB** of animated SVG, or **6.9 KB** summed gzip. Each selects a static poster when reduced motion is requested. [View all posters and the size manifest](docs/animations/) · [Reproduce the artwork](scripts/generate-readme-art.mjs) with `npm run readme:generate`; verify with `npm run test:readme-art`.
 
+### Reusable symbols and nested timelines
+
+Convert a selected layer with **Properties → Convert to symbol**, give it a name, then open **Library** to place more instances. **Edit symbol** opens its own stage and timeline. A shared definition edit updates every instance. Convert a layer inside that definition to nest another symbol; the breadcrumb returns to its parent or Scene.
+
+Each instance supports **Loop**, **Play once** and **Single frame**, with first frame and parent start offsets. Definitions have their own dimensions, camera and duration, and share the document FPS. Save, Undo, autosave, SVG export and embeds preserve the whole project while a definition is open. On phones, **More → Convert to symbol**, the inspector and Library expose the same operations. Delete an instance with the visible selection toolbar; a definition can be deleted after its references are removed.
+
+These are deterministic graphic symbols. Independent MovieClip clocks, button states and frame scripts remain on the [Flash parity plan](docs/flash-parity.md). Symbol documents use schema version 2; older players reject them. Instance blur and glow are unavailable; apply those effects to artwork inside the definition. [Symbol architecture](docs/adr/009-symbols-and-nested-timelines.md) · [Release verification](docs/release-0.5.0.md).
+
 ### 3D and motion design
 
 Open **3D** to add a box, sphere, torus or pyramid. Use **Scene camera** to adjust perspective and orbit. Choose a frame and **Set camera keyframe** to save a pose; move to another frame and save another pose. Camera keys appear in the timeline and can be removed from the camera dialog. The inspector exposes X/Y rotation, depth, wireframe, blur, glow and blending. In **Motion**, apply Fade, Rise, Pop, 3D revolution, Float or Focus reveal, then edit the generated keys and easing curves. Choose **Motion property** to give opacity, position, rotation or effects their own easing at a shared keyframe. **All properties** explicitly resets those overrides. Existing timing is retained when a preset shares a keyframe with another property.
 
 Start with the **Beyond / 3D motion** template for an animated composition. On phones, **More → 3D objects and camera** provides the same controls. Three.js geometry is projected into SVG; editor, embeds and exports share that renderer. The pinned Three.js module adds 25.3 KB gzip.
 
-These are motion design tools inspired by After Effects, with no AEP import, expressions, feathered masks, nested compositions or shared depth buffer between objects. Animated 3D SVG samples geometry and can be large: the eight second Beyond template exports approximately 3.45 MB. Limits are 32 mesh layers, 4,096 source triangles and 16 MB per SVG export. [Design and limits](docs/adr/006-three-svg-motion.md) · [Camera and timing design](docs/adr/007-camera-and-property-timing.md) · [Release verification](docs/release-0.4.0.md).
+These are motion design tools inspired by After Effects, with no AEP import, expressions, feathered masks or shared depth buffer between objects. Animated 3D SVG samples geometry and can be large: the eight second Beyond template exports approximately 3.45 MB. Limits are 32 mesh layers, 4,096 source triangles and 16 MB per SVG export. [Design and limits](docs/adr/006-three-svg-motion.md) · [Camera and timing design](docs/adr/007-camera-and-property-timing.md) · [Release verification](docs/release-0.4.0.md).
 
 ### Reveal masks
 
@@ -266,6 +275,6 @@ The [ADRs](docs/adr/) document scene ownership, rendering, worker isolation, loc
 
 Ruflo AI Team records task ownership; concurrent Codex workers implement isolated modules. ruOS provides deployment and independent execution evidence. Federation was unavailable during the initial build, so no federation execution or successful claims are asserted.
 
-The initial scope excludes an FLA importer, full AS3 compiler/VM, Stage3D, a video/audio compositor, collaborative cloud editing, arbitrary SVG imports, a complete game engine and universal SWF parity. These require separate compatibility fixtures and measured acceptance gates.
+The product target is a complete Flash authoring and runtime replacement. The [delivery plan](docs/flash-parity.md) defines eight milestones with executable acceptance gates. FLA import, full AS1/AS2/AS3 semantics and Flash APIs, independent MovieClips, Stage3D, synchronized audio/video, collaborative storage and a general game engine remain unfinished. SVG rendering alone does not establish compatibility.
 
 MIT for Rash. Vendored Three.js, RuVector and Ruffle retain their original licenses and provenance.

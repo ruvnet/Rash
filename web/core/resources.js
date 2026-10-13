@@ -1,5 +1,5 @@
 /** rash:// is a local resource address, never a network or operating system URL. */
-const TYPES = new Set(['project', 'template', 'node', 'help']);
+const TYPES = new Set(['project', 'template', 'node', 'symbol', 'help']);
 const ID = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
 
 export function parseRashURI(value) {
@@ -16,7 +16,8 @@ export const RESOURCE_HELP = Object.freeze({
   welcome: { title: 'Rash Studio', text: 'Create SVG scenes, animate a timeline, preview and export. Save project JSON to keep an independent copy.' },
   actionscript: { title: 'ActionScript compatibility', text: 'Rash supports a bounded scripting subset. Optional legacy.html plays SWFs with isolated Ruffle; neither path promises complete Flash compatibility. See docs/compatibility.md.' },
   embed: { title: 'Embed a scene', text: 'Export an embed and host its assets over HTTPS. Use the generated JavaScript or a sandboxed iframe. Projects do not receive host page access.' },
-  privacy: { title: 'Local projects', text: 'Project autosave stays in this browser. Clearing site data removes it. Export project JSON for backup.' }
+  privacy: { title: 'Local projects', text: 'Project autosave stays in this browser. Clearing site data removes it. Export project JSON for backup.' },
+  symbols: { title: 'Shared graphic symbols', text: 'Convert a selected layer or create a symbol in Library. Place instances, then edit the shared definition. Back to Scene returns to the root timeline. Loop, Play once and Single frame use the parent clock. Project JSON preserves the whole library; version 2 needs a current player.' }
 });
 
 /** All dependencies are supplied by the application; resolving a URI cannot execute a command. */
@@ -30,6 +31,7 @@ export function createResourceRegistry({ getProject, templates = [], help = RESO
         const p = project();
         if (p && (resource.id === 'current' || resource.id === p.id)) result = p;
       } else if (resource.type === 'node') result = project()?.nodes?.find(n => n.id === resource.id);
+      else if (resource.type === 'symbol') result = project()?.symbols?.find(symbol => symbol.id === resource.id);
       else if (resource.type === 'template') result = templates.find(t => t.id === resource.id);
       else if (resource.type === 'help' && Object.hasOwn(help, resource.id)) result = help[resource.id];
       if (result === undefined) throw new Error(`Resource not found: ${resource.uri}`);
@@ -39,6 +41,7 @@ export function createResourceRegistry({ getProject, templates = [], help = RESO
       const p = project();
       return [
         ...(p ? ['rash://project/current', ...(p.nodes ?? []).map(n => `rash://node/${n.id}`)] : []),
+        ...(p?.symbols ?? []).map(symbol => `rash://symbol/${symbol.id}`),
         ...templates.map(t => `rash://template/${t.id}`),
         ...Object.keys(help).map(key => `rash://help/${key}`)
       ].filter(uri => { try { parseRashURI(uri); return true; } catch { return false; } });

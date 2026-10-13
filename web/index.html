@@ -50,7 +50,8 @@
         <div class="layer-footer"><button class="quiet-button" data-action="new-project">+ New composition</button></div>
       </section>
       <section id="library-panel" hidden>
-        <label class="library-search"><span aria-hidden="true">⌕</span><input id="library-search" type="search" placeholder="Find a shape or template" aria-label="Search library" /></label>
+        <label class="library-search"><span aria-hidden="true">⌕</span><input id="library-search" type="search" placeholder="Find a symbol or template" aria-label="Search library" /></label>
+        <div class="library-heading">GRAPHIC SYMBOLS</div><div class="symbol-library-tools"><button class="button" data-action="new-symbol">New symbol</button><button class="button" id="library-convert-symbol" data-action="convert-symbol">Convert selection</button></div><div id="symbol-library" aria-label="Graphic symbol library"></div>
         <div class="library-heading">QUICK SHAPES</div><div id="shape-library" class="shape-library"></div>
         <div class="library-heading">ANOTHER DIMENSION</div><button class="button library-three-button" data-action="three-workspace">◇ 3D objects and camera</button><button class="button library-three-button" data-action="motion-presets">✦ Motion presets</button><div class="library-heading">START WITH A STORY</div><div id="template-library" class="template-library"></div>
       </section>
@@ -62,6 +63,7 @@
         <div class="mode-tabs" aria-label="Workspace mode"><button class="active" data-action="design-mode">Design</button><button data-action="animate-mode">Animate</button><button data-action="three-workspace" aria-label="3D workspace">3D <span class="mini-tag">NEW</span></button><button data-action="script">Actions <span class="mini-tag">AS</span></button></div>
         <div class="workspace-options"><button id="grid-button" class="icon-button active" data-action="grid" title="Toggle stage grid" aria-label="Toggle stage grid" aria-pressed="true"></button><span class="toolbar-separator"></span><button class="zoom-button" data-action="zoom-out" aria-label="Zoom out">−</button><button id="zoom-label" class="zoom-label" data-action="zoom-fit" title="Fit stage">Fit</button><button class="zoom-button" data-action="zoom-in" aria-label="Zoom in">+</button></div>
       </div>
+      <nav id="scope-breadcrumb" class="scope-breadcrumb" aria-label="Editing scope" hidden><button data-action="scene-scope" aria-label="Back to Scene">‹ Scene</button><button id="parent-scope" data-action="parent-scope" aria-label="Back to parent symbol" hidden>‹ Parent</button><span id="scope-name"></span><span class="scope-shared-label">Shared symbol</span></nav>
       <div class="selection-toolbar" id="selection-toolbar" aria-label="Selection actions">
         <div class="history-actions"><button class="icon-button" data-action="undo" aria-label="Undo" title="Undo"></button><button class="icon-button" data-action="redo" aria-label="Redo" title="Redo"></button></div>
         <span id="selection-hint">Tap an object to edit</span>
