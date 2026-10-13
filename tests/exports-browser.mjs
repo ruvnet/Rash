@@ -41,7 +41,7 @@ const base = `http://127.0.0.1:${server.address().port}`;
 const assets = process.env.RASH_TEST_URL ? process.env.RASH_TEST_URL.replace(/\/$/,'') : base;
 const host = http.createServer((request,response) => response.writeHead(200, {'Content-Type':'text/html'}).end('<!doctype html><title>Third-party embed host</title>'));
 await new Promise(resolve => host.listen(0, '127.0.0.1', resolve));
-const browser = await playwright[browserName].launch({ headless: true, args: ['--no-sandbox'] });
+const browser = await playwright[browserName].launch({ headless: true, args: browserName === 'chromium' ? ['--no-sandbox'] : [] });
 try {
   const page = await browser.newPage(); const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -64,7 +64,7 @@ try {
     const animatedCameraEmbed=cameraGeometry(a)!==cameraGeometry(b);
     const node = a.shadowRoot.querySelector('[data-node-id="ball"]'); a.seek(2); const retained = node === a.shadowRoot.querySelector('[data-node-id="ball"]');
     const independentTiming=Math.abs(Number(node.getAttribute('opacity'))-.4)<1e-9;
-    a.play(); await new Promise(r => setTimeout(r, 130)); a.pause(); const played = a.currentFrame > 2;
+    a.play(); const playbackDeadline=performance.now()+3000; while(a.currentFrame<=2&&performance.now()<playbackDeadline) await new Promise(r=>setTimeout(r,25)); a.pause(); const played = a.currentFrame > 2;
     const exported = {};
     for (const format of ['svg','gif','pdf','png','json','html']) {
       const {blob,filename} = await exportProject(p,format);
@@ -89,7 +89,7 @@ try {
     const pdfPixels=ctx.getImageData(0,0,160,96).data;let pdfGreenPixels=0;
     for(let i=0;i<pdfPixels.length;i+=4)if(pdfPixels[i+1]>pdfPixels[i]*1.5&&pdfPixels[i+1]>pdfPixels[i+2]*1.5)pdfGreenPixels++;
     let mp4;
-    if(mp4Support()) { const {blob} = await exportProject(p,'mp4'); mp4 = {size:blob.size,type:blob.type,bytes:Array.from(new Uint8Array(await blob.arrayBuffer()))};
+    if(mp4Support()) { const videoProject=structuredClone(p);videoProject.duration=20;for(const track of [...videoProject.nodes,videoProject.camera])for(const key of track.keyframes||[])key.frame*=4;const {blob} = await exportProject(videoProject,'mp4'); mp4 = {size:blob.size,type:blob.type,bytes:Array.from(new Uint8Array(await blob.arrayBuffer()))};
       const video=document.createElement('video'),url=URL.createObjectURL(blob);video.muted=true;video.preload='auto';
       const waitFor=event=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error(`MP4 ${event} timed out`)),10000);video.addEventListener(event,()=>{clearTimeout(timer);resolve();},{once:true});video.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('MP4 decode failed'));},{once:true});});
       try{const loaded=waitFor('loadeddata');video.src=url;await loaded;
@@ -114,7 +114,7 @@ try {
   const gif=inspectGIF(Uint8Array.from(result.exported.gif.bytes));assert.deepEqual([gif.width,gif.height],[160,96]);assert.equal(gif.frames.length,6);assert.equal(gif.delay,50);
   assert.notDeepEqual(gif.frames[0],gif.frames.at(-1),'GIF decoded frames must contain movement');
   assert.ok(gif.frames[0].filter(v=>((v>>2)&7)>(v>>5)*1.5&&((v>>2)&7)/7>(v&3)/3*1.5).length>100,'GIF must contain quantized green mesh pixels');
-  if(result.mp4.bytes) { await fs.writeFile(`${exportDir}/scene.mp4`,Uint8Array.from(result.mp4.bytes)); assert.ok(Buffer.from(result.mp4.bytes.slice(0,32)).toString().includes('ftyp'));assert.equal(result.mp4.decoded.width,160);assert.equal(result.mp4.decoded.height,96);assert.ok(result.mp4.decoded.duration>.2&&result.mp4.decoded.duration<2);assert.ok(result.mp4.decoded.changedPixels>100,'MP4 must decode moving scene content'); }
+  if(result.mp4.bytes) { await fs.writeFile(`${exportDir}/scene.mp4`,Uint8Array.from(result.mp4.bytes)); assert.ok(Buffer.from(result.mp4.bytes.slice(0,32)).toString().includes('ftyp'));assert.equal(result.mp4.decoded.width,160);assert.equal(result.mp4.decoded.height,96);assert.ok(result.mp4.decoded.duration>1&&result.mp4.decoded.duration<4);assert.ok(result.mp4.decoded.changedPixels>100,'MP4 must decode moving scene content'); }
   else assert.match(result.mp4.unsupported,/MP4 recording is unavailable/);
   await page.emulateMedia({reducedMotion:'reduce'});
   const reduced = await page.evaluate(async origin => {

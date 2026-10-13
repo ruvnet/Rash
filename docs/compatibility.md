@@ -102,9 +102,10 @@ one does not prove that the other artifact is current.
 
 ## Remaining compatibility gates
 
-1. **Legacy content corpus.** The existing `tests/runtime-browser.mjs` loads a
-   non-script orange-stage SWF and checks player isolation. It does not establish
-   AVM1 or AVM2 script compatibility, audio/video fidelity, fonts, or game behavior.
+1. **Legacy content corpus.** `tests/runtime-browser.mjs` checks player isolation and compares
+   original generated AVM1 control/scripted fixtures. Actual rendered pixels verify
+   ActionPush and ActionSetProperty move a named shape from x=0 to x=80. This does
+   not establish general AVM1 or AVM2 compatibility, audio/video fidelity, fonts, or game behavior.
    Add redistributable, versioned fixtures with expected frames and interactions
    before making broader legacy claims. Preserve the separate isolated Ruffle
    player rather than silently converting its results into SVG compatibility.
@@ -122,6 +123,6 @@ one does not prove that the other artifact is current.
    be recorded separately. Browser harness results cannot substitute for these
    environments. Native SVG exports do not execute project scripts or game input.
 
-The next compatibility acceptance gate is a licensed AVM1 and AVM2 fixture pair
+The next compatibility acceptance gate is a broader redistributable AVM1 and AVM2 corpus
 with reproducible expected playback, plus a corresponding Studio test that
 explicitly rejects unsupported source instead of silently changing its meaning.

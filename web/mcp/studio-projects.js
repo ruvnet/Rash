@@ -5,6 +5,8 @@ export function createCloudProjects({getProject,openProject,showModal,closeModal
  let record=null,busy=false,sequence=0,view=0;
  const hosted=location.pathname.startsWith('/studio/');
  function detach(){record=null;}
+ function getLink(){return record?{id:record.id,revision:record.revision,project:{name:record.project.name}}:null;}
+ function restoreLink(link){if(record?.id!==link?.id)record=link?structuredClone(link):null;}
  async function call(name,args={}) {
   const response=await fetcher('/mcp',{method:'POST',credentials:'same-origin',redirect:'error',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++sequence,method:'tools/call',params:{name,arguments:args}}),signal:AbortSignal.timeout(20000)});
   if(response.status===401||response.status===403)throw Error('Sign in to the private workspace, then reopen cloud projects.');
@@ -20,7 +22,7 @@ export function createCloudProjects({getProject,openProject,showModal,closeModal
   showModal(`${header('Cloud projects','Use the same saved projects as your connected Rash MCP plugin.')}<div class="modal-body" id="cloud-projects">${hosted?`<p id="cloud-current">${record?`Linked to ${escape(record.project.name)} · revision ${record.revision}`:'This composition is not linked to a cloud project.'}</p><p>Device autosave stays local. Save explicitly to update the cloud revision. Download a backup before replacing your composition.</p><div class="form-row"><button class="button" data-cloud="refresh">Refresh list</button><button class="button" data-cloud="create">Save as new cloud project</button><button class="button primary" data-cloud="save" ${record?'':'disabled'}>Save linked revision</button></div><label class="form-label" for="cloud-list">SAVED PROJECTS</label><select id="cloud-list" class="text-input"><option value="">Choose a project</option></select><label class="replace-consent"><input type="checkbox" id="cloud-replace"> Replace the current composition with the selected cloud project.</label><div class="form-row"><button class="button" data-cloud="open">Open selected project</button><button class="button" data-cloud="delete">Delete selected project…</button></div><div id="cloud-delete" hidden><p id="cloud-delete-label"></p><button class="button" data-cloud="confirm-delete">Permanently delete</button><button class="button" data-cloud="cancel-delete">Cancel deletion</button></div><p id="cloud-status" role="status" aria-live="polite"></p>`:`<p>Open the authenticated Studio to browse, edit and save the same projects used by ChatGPT. This public Studio keeps its composition on this device.</p><p>To transfer this composition, download its JSON and open that file in the private Studio, then choose Save as new cloud project.</p><a class="button primary" href="${PRIVATE_STUDIO}" target="_blank" rel="noopener noreferrer">Open authenticated Studio ↗</a><button class="button" data-action="save">Download current composition</button>`}</div><div class="modal-footer"><button class="button" data-action="close-modal">Back to studio</button></div>`,'cloud');
   if(!hosted)return;
   const root=document.querySelector('#cloud-projects'),status=root.querySelector('#cloud-status'),list=root.querySelector('#cloud-list');let deletion=null;
-  const current=()=>ticket===view&&root.isConnected;
+  const current=()=>ticket===view&&root.isConnected&&root.closest('dialog')?.open;
   function message(text){if(current())status.textContent=text;}
   function linked(){if(current()){root.querySelector('#cloud-current').textContent=record?`Linked to ${record.project.name} · revision ${record.revision}`:'This composition is not linked to a cloud project.';}}
   async function refresh(){const data=await call('rash_project_list');if(!Array.isArray(data.projects)||data.projects.length>100)throw Error('Invalid cloud project list.');if(!current())return;const selected=list.value;list.replaceChildren(new Option('Choose a project',''),...data.projects.map(p=>new Option(`${p.name} · revision ${p.revision}`,p.id)));list.value=selected;}
@@ -51,5 +53,5 @@ export function createCloudProjects({getProject,openProject,showModal,closeModal
   });
   run(refresh);
  }
- return {show,detach};
+ return {show,detach,getLink,restoreLink};
 }

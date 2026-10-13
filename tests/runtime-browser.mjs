@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { createCompatibilitySwf } from '../scripts/generate-compatibility-swf.mjs';
 
 const root = path.resolve('web');
 const server = http.createServer(async (request, response) => {
@@ -62,8 +63,53 @@ try {
   assert.equal(await page.locator('#legacy-player').getAttribute('sandbox'), 'allow-scripts');
   await page.locator('#stop-player').click();
   await page.waitForFunction(() => document.querySelector('#status').textContent.includes('disposed'));
+  // Authored AVM1 pair: only ActionSetProperty moves the orange shape from
+  // x=0 to x=80. Pixel evidence distinguishes script execution from SWF load.
+  const pixelPage = await browser.newPage();
+  const centroids = [];
+  for (const scripted of [false, true]) {
+    const fixtureName = `avm1-${scripted ? 'scripted' : 'control'}.swf`;
+    const fixture = createCompatibilitySwf(scripted);
+    await page.locator('#legacy-player').evaluate(el => {el.style.width='320px';el.style.height='200px';el.style.minHeight='0';});
+    await page.locator('#swf-file').setInputFiles({name:fixtureName,mimeType:'application/x-shockwave-flash',buffer:fixture});
+    await page.waitForFunction(() => document.querySelector('#status').textContent.startsWith('Playing ') || document.querySelector('#status').textContent.startsWith('Player error'), {timeout:35000});
+    assert.match(await page.locator('#status').textContent(), /^Playing /);
+    const movie = page.frames().find(candidate => candidate !== page.mainFrame());
+    const canvas = movie.locator('ruffle-player').locator('canvas');
+    await canvas.waitFor();
+    await movie.locator('ruffle-player').click(); // Dismiss Ruffle's browser audio permission overlay.
+    let measurement;
+    for (let attempt=0;attempt<30;attempt++) {
+      const closeNotice=movie.locator('#hardware-acceleration-modal .close-modal');
+      if(await closeNotice.isVisible())await closeNotice.click();
+      const unmute=movie.locator('#unmute-overlay');
+      if(await unmute.isVisible())await unmute.click();
+      const png = await canvas.screenshot();
+      measurement = await pixelPage.evaluate(async bytes => {
+        const bitmap=await createImageBitmap(new Blob([Uint8Array.from(bytes)],{type:'image/png'}));
+        const out=document.createElement('canvas');out.width=bitmap.width;out.height=bitmap.height;
+        const ctx=out.getContext('2d');ctx.drawImage(bitmap,0,0);bitmap.close();
+        const data=ctx.getImageData(0,0,out.width,out.height).data;let count=0,sumX=0;
+        for(let y=0;y<out.height;y++)for(let x=0;x<out.width;x++){
+          const i=(y*out.width+x)*4;
+          if(data[i]>230&&data[i+1]>90&&data[i+1]<170&&data[i+2]<30){count++;sumX+=x;}
+        }
+        return {coverage:count/(out.width*out.height),centroid:count?sumX/count/out.width:null};
+      }, [...png]);
+      if(measurement.coverage>0.05)break;
+      await page.waitForTimeout(100);
+    }
+    assert.ok(measurement.coverage>0.05, `${fixtureName} must render an orange shape`);
+    const expected=scripted?0.625:0.125;
+    assert.ok(Math.abs(measurement.centroid-expected)<0.025, `${fixtureName}: expected centroid ${expected}, observed ${measurement.centroid}`);
+    centroids.push(measurement.centroid);
+    await page.locator('#stop-player').click();
+    await page.waitForFunction(() => document.querySelector('#status').textContent.includes('disposed'));
+  }
+  assert.ok(centroids[1]-centroids[0]>0.45, 'AVM1 property write must visibly move the shape');
+  await pixelPage.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ runtime: 'Rust WASM worker', sameOrigin: 'PASS', crossOriginBlobWorker: 'PASS', legacySWF: 'PASS', opaqueSandbox: 'PASS', networkBlocked: 'PASS', storageBlocked: 'PASS', parentAccessBlocked: 'PASS', closeDisposesPlayer: 'PASS' }));
+  console.log(JSON.stringify({ runtime: 'Rust WASM worker', sameOrigin: 'PASS', crossOriginBlobWorker: 'PASS', legacySWF: 'PASS', avm1ScriptedPropertyPixels: 'PASS', avm1ControlCentroids: centroids, opaqueSandbox: 'PASS', networkBlocked: 'PASS', storageBlocked: 'PASS', parentAccessBlocked: 'PASS', closeDisposesPlayer: 'PASS' }));
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

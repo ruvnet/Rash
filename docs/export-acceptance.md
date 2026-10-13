@@ -36,7 +36,7 @@ Assertions include:
 2. GIF is parsed and independently LZW decoded. Six frames cover 50 centiseconds, contain mesh color data, and differ between first and last frame.
 3. PDF contains a decodable JPEG with the expected dimensions and projected green mesh pixels. Unit tests separately verify cross reference offsets.
 4. PNG contains projected mesh pixels and matches the evaluated initial camera pose.
-5. MP4, when supported, loads into a video element, reports expected dimensions and plausible duration, and produces different decoded pixel samples across the clip. Unsupported MP4 must return the documented error.
+5. MP4 uses a two second version of the scene to allow real time capture startup; when supported, it loads into a video element, reports expected dimensions and plausible duration, and produces different decoded pixel samples across the clip. Unsupported MP4 must return the documented error.
 6. JSON contains the expected objects and motion endpoint; HTML contains declarative animation without external script dependencies.
 7. Two embedded players maintain independent frames, retain SVG nodes, play and pause, and honor reduced motion. A separate origin executes the WASM worker and applies mesh commands.
 
@@ -44,6 +44,6 @@ Artifacts are written to `/tmp/rash-export-validation`. The report explicitly di
 
 ## Evidence and remaining scope
 
-The strengthened suite passed locally in Chromium on 2026-10-13 UTC, including MP4 decoding and motion. Local WebKit could not start because its Playwright binary was absent; a WebKit run in CI or another prepared environment is still required for this revision.
+The strengthened suite passed locally in Chromium on 2026-10-13 UTC, including MP4 decoding and motion. It also passed on ruOS in WebKit, where MP4 was unavailable and the actionable error path passed. The harness uses browser appropriate launch arguments and waits for observed playback advancement rather than assuming a frame renders within 130 milliseconds.
 
 This suite does not prove every template, font, filter, arbitrary scene, audio workflow, physical mobile browser, or third party CSP configuration. Physical iPhone and Android download and sharing acceptance remains separate. An MP4 header alone, or an exported filename alone, is insufficient evidence of a usable output.
