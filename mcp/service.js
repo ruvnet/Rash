@@ -54,5 +54,5 @@ export async function callTool(store, name, args={}) {
  const format=name==='rash_render'?'svg':args.format;
  const data=format==='json'?JSON.stringify(record.project,null,2):format==='svg'?sceneToSVG(record.project,frame):format==='animated-svg'?animatedSVG(record.project):embedCode(record.project,{baseURL:'https://ruvnet.github.io/Rash/'});
  if(new TextEncoder().encode(data).length>MAX_OUTPUT_BYTES)throw new RashError('LIMIT','Export exceeds 16 MB');
- return {id:record.id,revision:record.revision,format,mimeType:format==='json'?'application/json':format==='embed'?'text/html':'image/svg+xml',data};
+ return {id:record.id,revision:record.revision,frame,format,mimeType:format==='json'?'application/json':format==='embed'?'text/html':'image/svg+xml',data};
 }

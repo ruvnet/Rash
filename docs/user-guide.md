@@ -134,7 +134,7 @@ The local plugin launches the repository server using `${CLAUDE_PLUGIN_ROOT}/mcp
 
 **Host verification boundary:** source implementation and automated protocol or UI tests do not establish a live ChatGPT or Claude connection. A deployed HTTPS MCP endpoint and a real connected host session must be verified separately. The private Plugin Launchpad demo is a separate service; its availability does not establish Rash integration.
 
-For host acceptance, create a project, display its SVG, play and seek, edit a layer, save, reopen, export, then delete and undo. Repeat for a shared symbol and confirm that another user's project cannot be accessed. Protocol tests and standalone browser tests provide evidence for individual components; they do not replace this real host session.
+For host acceptance, create a project, display its SVG, play and seek, edit a layer, save, reopen, export, then confirm deletion. MCP project deletion is permanent; layer deletion and undo are full studio workflows. Repeat project round trips for a shared symbol and confirm that another user's project cannot be accessed. Protocol tests and standalone browser tests provide evidence for individual components; they do not replace this real host session.
 
 ## Recovery and troubleshooting
 
