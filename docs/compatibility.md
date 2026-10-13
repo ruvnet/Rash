@@ -7,14 +7,14 @@ This document describes the current source, with precise limits. Release accepta
 | Area | Current implementation | Limit or missing feature |
 | --- | --- | --- |
 | Stage | Retained SVG vectors, Three.js projected box/sphere/torus/pyramid layers, animated rectangle/ellipse masks, blur/glow and four blend modes | No general SVG import, feathering, inverted or referenced masks, textures, shaders or arbitrary filters; 3D objects use SVG layer order rather than shared depth |
-| Timeline | Numeric transform/effect/mask keyframes, discrete blank/exposed layer keys, named frame labels, editable presets, stagger, Bezier graph, bounce/elastic easing, playback, frame sampling, document-wide frame insertion/removal and selected-layer pose copying | Nested graphic symbol timelines share the document FPS; labels identify and seek authored moments but are not script targets; no scenes, onion skin, AEP import, expressions, Flash shape tween or frame event graph; per property easing and Bezier overrides are supported |
+| Timeline | Numeric transform/effect/mask keyframes, discrete blank/exposed layer keys, named frame labels, label-based `gotoAndPlay`/`gotoAndStop`, editable presets, stagger, Bezier graph, bounce/elastic easing, playback, frame sampling, document-wide frame insertion/removal and selected-layer pose copying | Nested graphic symbol timelines share the document FPS; scene scripts can target root-scene labels only; no scenes, onion skin, AEP import, expressions, Flash shape tween or frame event graph; per property easing and Bezier overrides are supported |
 | Symbols | Reusable graphic definitions, nested instances, shared editing, independent transforms and Loop, Play once or Hold one frame playback | Parent synchronized clocks only; no independent MovieClip events, Button symbol states or symbol scripts; no blur/glow on symbol containers |
 | Camera | Animated orbit, distance and field of view for projected objects in each scene or symbol definition | Up to 1,000 camera keys per scope; symbol cameras follow their local clock; no WebGL depth buffer |
 | Document | Version 1 flat projects remain supported; creating a symbol upgrades to version 2 with a shared library; web, social, story, HD, A4 and classic presets | 128 definitions, eight nesting levels, 1,000 stored and expanded layers, 5 MB import limit; version 2 requires a current player |
 | Scripting | Rust source parser and interpreter in a dedicated worker | RashScript subset; not a full ActionScript compiler or AVM |
 | Variables | Numbers, strings, booleans, null, declarations and accepted type annotations | Annotations do not implement AS3's type system; no object/class model |
 | Control flow | If/else, for, while, break, continue, arithmetic and comparisons | No user functions, classes, packages, imports, exceptions or switch |
-| Scene commands | Allowlisted property writes, timeline commands, trace, selected Math functions | No DOM, network, filesystem, eval, dynamic code or Flash API imports |
+| Scene commands | Allowlisted property writes, numeric and named-label timeline commands, trace, selected Math functions | No DOM, network, filesystem, eval, dynamic code or Flash API imports |
 | Legacy content | Optional self hosted Ruffle 0.7.1 SWF player, isolated from the studio | Upstream AVM1/AVM2 compatibility limits; no FLA import or SWF editing; network, storage and ExternalInterface disabled |
 | SVG export | Animated numeric tracks, nested graphic symbol clocks, projected 3D frame groups, native filter and geometric clip animation | No project scripts; 16 MB output, 200,000 source triangle frames, 500,000 layer frames and 5 million evaluation work budget |
 | HTML export | Standalone HTML with animated SVG | Timeline animation only; not a full project runtime |
@@ -46,7 +46,7 @@ Version 1 files retain their flat schema. Adding a symbol explicitly creates a v
 
 See [runtime.md](runtime.md) and `crates/rash-runtime/src/lib.rs` for the implemented grammar and command semantics. Strict equality and coercion behavior are deliberately bounded and should not be assumed identical to ECMAScript or AS3. Unsupported features produce errors. Errors return no scene commands, avoiding partial changes. Script lookup and timeline commands target the root scene. The editor asks users to return to Scene before opening Actions from a symbol; graphic definitions have no separate script runtime.
 
-Project duration and timeline seek values are frame counts. A 240-frame project at 30 fps is eight seconds. Compatibility with a legacy SWF must eventually be demonstrated against a representative executable corpus, not inferred from similar syntax.
+Project duration and timeline seek values are frame counts. A 240-frame project at 30 fps is eight seconds. `gotoAndPlay("Intro")` and `gotoAndStop("Outro")` resolve exact, case-sensitive names from the validated root-scene label table supplied to the Rust runtime. Unknown labels fail atomically with no scene commands. Graphic-symbol labels remain authoring markers because symbol definitions do not run independent scripts. Compatibility with a legacy SWF must eventually be demonstrated against a representative executable corpus, not inferred from similar syntax.
 
 ## Export boundary
 
@@ -62,7 +62,7 @@ Run `npm test`, `cargo test`, `npm run test:ui`, `npm run test:symbols`, `RASH_B
 
 `tests/symbols.test.js`, `tests/symbol-render.test.js` and `tests/symbols-browser.mjs` cover the graphic symbol contract at model, renderer/export and visible application boundaries. Their source defines the checks; release evidence must record actual results for the candidate commit.
 
-`tests/timeline-frames.test.js` covers atomic frame insertion, removal, pose copying and bounded frame-label retiming across layer, camera and label tracks. `tests/workflows-browser.mjs` exercises the visible desktop controls, label seeking, FPS retiming, Undo and the mobile More route in both Chromium and WebKit. These operations edit one scene or symbol-definition timeline at a time; they do not add multiple Flash scenes, label-based script navigation or MovieClip lifecycle events.
+`tests/timeline-frames.test.js` covers atomic frame insertion, removal, pose copying and bounded frame-label retiming across layer, camera and label tracks. `tests/workflows-browser.mjs` exercises the visible desktop controls, label seeking, label-based root-scene script navigation, FPS retiming, Undo and the mobile More route in both Chromium and WebKit. These operations edit one scene or symbol-definition timeline at a time; they do not add multiple Flash scenes, frame scripts or MovieClip lifecycle events.
 
 
 ## Executable scripting compatibility matrix
@@ -81,12 +81,13 @@ ActionScript. No JavaScript interpreter substitute is used.
 | Scene lookup and mutation | `lookup` | Exact ordered commands targeting the expected node ID |
 | Alpha aliases and clamping | `alpha-aliases` | `_alpha=25` emits opacity 0.25; alpha above one clamps |
 | Timeline controls | `timeline` | Ordered play, stop and explicit frame commands; frame zero remains zero |
+| Named timeline controls | `timeline-labels` | Exact root-scene labels resolve to ordered play/stop frame commands |
 | Stage context | `stage` | Dimensions, FPS and current frame are read from context |
 | 3D and effect properties | `motion` | Six allowlisted property commands |
 | Equality difference | `strict-equality-only` | Both numeric/string comparisons are false; no AS loose equality claim |
 | Declaration differences | `informational-types` | `int` annotation leaves 2.5 unchanged; `const` reassignment succeeds |
 | Unsupported language | `classes`, `functions`, `packages`, `imports`, `arrays`, `objects`, `exceptions` | Error with zero scene commands |
-| Unsupported Flash behavior | `events`, `display-list`, `directional-scale` | Error with zero scene commands |
+| Unsupported Flash behavior | `events`, `display-list`, `directional-scale`, `unknown-frame-label` | Error with zero scene commands |
 | Host and resource boundaries | `network`, `eval`, `external-interface`, `unsafe-color`, `nonfinite`, `instruction-budget` | Error with zero scene commands |
 | Invocation isolation | Test `invocation state does not persist` | Variables and mutated context do not leak into the next invocation |
 | Source budget | Test `source limit rejects before execution` | Oversized source emits no scene commands |
@@ -96,7 +97,7 @@ command list, including when failure occurs after parsing. This tests command
 atomicity at the interpreter boundary. Studio validation, document rollback,
 worker cancellation, and undo remain separate browser acceptance checks.
 
-This corpus currently has **29 checks**, all passing against the committed binary
+This corpus currently has **31 checks**, all passing against the committed binary
 in the implementation workspace on 2026-10-13 UTC. That is contract coverage,
 not a percentage of Flash compatibility. Source changes require rebuilding WASM
 before rerunning these checks. Native Rust tests and WASM checks must both pass;
