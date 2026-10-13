@@ -95,6 +95,15 @@ try{
     await command('Add rectangle');await page.evaluate(()=>window.RashStudio.seek(4));await command('Frame operations');await page.locator('#frame-operation-count').fill('2');await tap(page.getByRole('button',{name:'Insert frames',exact:true}));
     p=await project();assert.equal(p.symbols.find(symbol=>symbol.id===scopeId).duration,245);assert.equal(p.duration,243);await command('Undo');assert.equal((await project()).symbols.find(symbol=>symbol.id===scopeId).duration,243);await tap(page.getByRole('button',{name:'Back to Scene',exact:true}));
   });
+  await check('frame labels author, seek, rename, retime and undo',async()=>{
+    await newProject();await page.evaluate(()=>window.RashStudio.seek(12));await command('Frame operations');await page.locator('#frame-label-name').fill('Intro');await tap(page.getByRole('button',{name:'Add label',exact:true}));
+    let p=await project();assert.deepEqual(p.frameLabels,[{frame:12,name:'Intro'}]);assert.equal(await page.locator('[data-frame-label="12"]').count(),1);
+    await page.evaluate(()=>window.RashStudio.seek(0));await tap(page.locator('[data-frame-label="12"]'));assert.equal(await page.evaluate(()=>window.RashStudio.getFrame()),12);
+    await command('Frame operations');await page.locator('#frame-label-name').fill('Opening');await tap(page.getByRole('button',{name:'Rename label',exact:true}));assert.deepEqual((await project()).frameLabels,[{frame:12,name:'Opening'}]);
+    await page.getByLabel('Frames per second',{exact:true}).selectOption('60');p=await project();assert.equal(p.fps,60);assert.deepEqual(p.frameLabels,[{frame:24,name:'Opening'}]);await command('Undo');p=await project();assert.equal(p.fps,30);assert.deepEqual(p.frameLabels,[{frame:12,name:'Opening'}]);
+    await page.evaluate(()=>window.RashStudio.seek(5));await command('Frame operations');await page.locator('#frame-operation-count').fill('3');await tap(page.getByRole('button',{name:'Insert frames',exact:true}));assert.deepEqual((await project()).frameLabels,[{frame:15,name:'Opening'}]);
+    await command('Undo');assert.deepEqual((await project()).frameLabels,[{frame:12,name:'Opening'}]);await page.evaluate(()=>window.RashStudio.seek(12));await command('Frame operations');await tap(page.getByRole('button',{name:'Remove label',exact:true}));assert.deepEqual((await project()).frameLabels,[]);await command('Undo');assert.deepEqual((await project()).frameLabels,[{frame:12,name:'Opening'}]);
+  });
   await check('path width and height edits resize rendered geometry',async()=>{
     await newProject();await tap(page.getByRole('tab',{name:'Library',exact:true}));await tap(page.getByRole('button',{name:'Add Curve',exact:true}));
     pathId=(await project()).nodes[0].id;await tap(page.getByRole('tab',{name:'Properties',exact:true}));
@@ -163,6 +172,7 @@ try{
     await mobile.evaluate(()=>window.RashStudio.seek(4));await tap(mobile.locator('.mobile-nav').getByRole('button',{name:'More',exact:true}));await tap(mobile.locator('#modal').getByRole('button',{name:'Frame operations',exact:true}));
     await mobile.locator('#frame-operation-count').fill('1');await tap(mobile.getByRole('button',{name:'Insert frames',exact:true}));assert.equal(await mobile.evaluate(()=>window.RashStudio.getProject().duration),241);
     await tap(mobile.getByRole('button',{name:'Undo',exact:true}));assert.equal(await mobile.evaluate(()=>window.RashStudio.getProject().duration),240);
+    await mobile.evaluate(()=>window.RashStudio.seek(8));await tap(mobile.locator('.mobile-nav').getByRole('button',{name:'More',exact:true}));await tap(mobile.locator('#modal').getByRole('button',{name:'Frame operations',exact:true}));await mobile.locator('#frame-label-name').fill('Phone cue');await tap(mobile.getByRole('button',{name:'Add label',exact:true}));assert.deepEqual(await mobile.evaluate(()=>window.RashStudio.getProject().frameLabels),[{frame:8,name:'Phone cue'}]);
   });
   await check('no uncaught errors in workflow regression tests',async()=>assert.deepEqual(errors,[]));
   await fs.writeFile(path.join(evidenceDir,'evidence.json'),JSON.stringify({url:base,browser:browserName,checks,errors,phone:{width:390,height:844,touch:true},limitations:['No physical iOS keyboard coverage.','Touch drag and resizing gestures are covered separately in Chromium only.']},null,2));
