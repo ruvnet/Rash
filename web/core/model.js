@@ -375,6 +375,57 @@ export function addKeyframe(p,id,frame){
  let k=n.keyframes.find(k=>k.frame===f);if(!k){k={frame:f,easing:'easeInOut'};n.keyframes.push(k);n.keyframes.sort((a,b)=>a.frame-b.frame);}
  for(const prop of ANIMATED_PROPERTIES)k[prop]=current[prop];return k;
 }
+function frameEditCount(value,label){
+ if(!Number.isSafeInteger(value)||value<1||value>36000)throw new Error(`${label} must be an integer between 1 and 36,000`);
+ return value;
+}
+function publishTimelineEdit(project,candidate){
+ const validated=validateProject(candidate);
+ project.duration=validated.duration;project.camera=validated.camera;project.nodes=validated.nodes;
+ return project;
+}
+/** Insert empty timeline frames across every layer and the scene camera. */
+export function insertTimelineFrames(project,at,count=1){
+ count=frameEditCount(count,'Inserted frame count');
+ if(!Number.isSafeInteger(at)||at<0||at>project.duration)throw new Error('Insert position must be on the composition timeline');
+ if(project.duration+count>36000)throw new Error('A composition supports at most 36,000 frames');
+ const candidate=cloneProject(project);candidate.duration+=count;
+ for(const key of candidate.camera.keyframes)if(key.frame>=at)key.frame+=count;
+ for(const node of candidate.nodes){
+  for(const key of node.keyframes)if(key.frame>=at)key.frame+=count;
+  if(node.type==='symbol'&&node.startFrame>=at)node.startFrame+=count;
+ }
+ return publishTimelineEdit(project,candidate);
+}
+/** Remove timeline frames across every layer and camera, dropping keys in the removed span. */
+export function removeTimelineFrames(project,at,count=1){
+ count=frameEditCount(count,'Removed frame count');
+ if(!Number.isSafeInteger(at)||at<0||at>=project.duration)throw new Error('Remove position must be on the composition timeline');
+ const removed=Math.min(count,project.duration-1,project.duration-at);
+ if(removed<1)throw new Error('A composition must keep at least one frame');
+ const end=at+removed,candidate=cloneProject(project);candidate.duration-=removed;
+ const shift=keys=>keys.filter(key=>key.frame<at||key.frame>=end).map(key=>key.frame>=end?{...key,frame:key.frame-removed}:key);
+ candidate.camera.keyframes=shift(candidate.camera.keyframes);
+ for(const node of candidate.nodes){
+  node.keyframes=shift(node.keyframes);
+  if(node.type==='symbol')node.startFrame=node.startFrame>=end?node.startFrame-removed:node.startFrame>=at?Math.min(at,candidate.duration-1):node.startFrame;
+ }
+ return publishTimelineEdit(project,candidate);
+}
+/** Materialize one selected layer's evaluated pose as a keyframe at another frame. */
+export function copyLayerFrame(project,id,source,destination){
+ for(const [value,label] of [[source,'Source'],[destination,'Destination']])if(!Number.isSafeInteger(value)||value<0||value>=project.duration)throw new Error(`${label} frame must be on the composition timeline`);
+ const candidate=cloneProject(project),node=candidate.nodes.find(node=>node.id===id);
+ if(!node)throw new Error('Select a layer before copying a frame');
+ if(node.locked)throw new Error(`Unlock ${node.name} before copying a frame`);
+ const pose=evaluateNode(node,source),sourceKey=node.keyframes.find(item=>item.frame===source);
+ let key=node.keyframes.find(key=>key.frame===destination);
+ if(!key){if(node.keyframes.length>=1000)throw new Error('A layer supports at most 1,000 keyframes');key={frame:destination,easing:'easeInOut'};node.keyframes.push(key);}
+ for(const property of ANIMATED_PROPERTIES)key[property]=pose[property];
+ if(sourceKey){const timing=normalizeTiming(sourceKey);key.easing=timing.easing;if(timing.bezier)key.bezier=timing.bezier;else delete key.bezier;if(sourceKey.curves)key.curves=structuredClone(sourceKey.curves);else delete key.curves;}
+ node.keyframes.sort((a,b)=>a.frame-b.frame);
+ const validated=validateProject(candidate);project.nodes=validated.nodes;return project.nodes.find(item=>item.id===id).keyframes.find(item=>item.frame===destination);
+}
 function maskCandidate(project,id){
  const candidate=cloneProject(project),index=candidate.nodes.findIndex(node=>node.id===id);
  if(index<0)throw new Error('The selected layer no longer exists');
