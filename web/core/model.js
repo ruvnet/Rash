@@ -1,6 +1,6 @@
 export const MAX_NODES = 1000;
 export const MAX_SYMBOLS=128,MAX_SYMBOL_DEPTH=8,MAX_SCENE_KEYFRAMES=10000;
-export const SYMBOL_PLAYBACK=Object.freeze(['loop','once','single']);
+export const SYMBOL_PLAYBACK=Object.freeze(['loop','once','single','movieclip']);
 export const MAX_TEXT_LINES_PER_NODE=256,MAX_TEXT_LINES=10000;
 export const MAX_MESHES=32,MAX_MESH_TRIANGLES=4096;
 export const MAX_EFFECT_LAYERS=64,MAX_EFFECT_AREA=16_000_000,MAX_SCENE_EFFECT_AREA=32_000_000;
@@ -176,7 +176,7 @@ export function normalizeNode(n,i=0){
  if(type==='symbol'){
   if(typeof n.symbolId!=='string'||!/^[-\w]{1,100}$/.test(n.symbolId))throw new Error('A symbol instance requires a valid symbolId');
   node.symbolId=n.symbolId;
-  if(n.playback!==undefined&&!SYMBOL_PLAYBACK.includes(n.playback))throw new Error('Symbol playback must be loop, once or single');
+  if(n.playback!==undefined&&!SYMBOL_PLAYBACK.includes(n.playback))throw new Error('Symbol playback must be loop, once, single or movieclip');
   node.playback=n.playback||'loop';
   for(const property of ['firstFrame','startFrame']){
    const value=n[property]??0;
@@ -335,11 +335,12 @@ export function validateProject(p){
  checkResources(scene.resources);
  return out;
 }
-/** Graphic symbols hold firstFrame before startFrame; they are never hidden by a clock. */
-export function evaluateSymbolFrame(instance,parentFrame,definition){
+/** Graphic symbols use their parent clock. MovieClips use the root transport clock. */
+export function evaluateSymbolFrame(instance,parentFrame,definition,clockFrame=parentFrame){
  const duration=Math.max(1,Math.trunc(Number(definition.duration)||1));
  const first=Math.max(0,Math.trunc(Number(instance.firstFrame)||0));
- const elapsed=Math.max(0,(Number(parentFrame)||0)-Math.max(0,Number(instance.startFrame)||0));
+ const source=instance.playback==='movieclip'?clockFrame:parentFrame;
+ const elapsed=Math.max(0,(Number(source)||0)-Math.max(0,Number(instance.startFrame)||0));
  if(instance.playback==='single')return Math.min(duration-1,first);
  const frame=elapsed+first;
  return instance.playback==='once'?Math.min(duration-1,frame):frame%duration;
@@ -479,7 +480,7 @@ export function insertTimelineFrames(project,at,count=1){
  for(const key of candidate.camera.keyframes)if(key.frame>=at)key.frame+=count;
  for(const node of candidate.nodes){
   for(const key of node.keyframes)if(key.frame>=at)key.frame+=count;
-  if(node.type==='symbol'&&node.startFrame>=at)node.startFrame+=count;
+  if(node.type==='symbol'&&node.playback!=='movieclip'&&node.startFrame>=at)node.startFrame+=count;
  }
  return publishTimelineEdit(project,candidate);
 }
@@ -495,7 +496,7 @@ export function removeTimelineFrames(project,at,count=1){
  candidate.camera.keyframes=shift(candidate.camera.keyframes);
  for(const node of candidate.nodes){
   node.keyframes=shift(node.keyframes);
-  if(node.type==='symbol')node.startFrame=node.startFrame>=end?node.startFrame-removed:node.startFrame>=at?Math.min(at,candidate.duration-1):node.startFrame;
+  if(node.type==='symbol'&&node.playback!=='movieclip')node.startFrame=node.startFrame>=end?node.startFrame-removed:node.startFrame>=at?Math.min(at,candidate.duration-1):node.startFrame;
  }
  return publishTimelineEdit(project,candidate);
 }
