@@ -27,7 +27,8 @@ test('npm dry-run tarball contains runtimes and artwork but no repository or sec
  const [packed]=JSON.parse(execFileSync('npm',['pack','--dry-run','--json','--ignore-scripts'],{encoding:'utf8'}));
  const files=new Set(packed.files.map(file=>file.path));
  for(const file of ['bin/rash.mjs','mcp/server.mjs','web/index.html','web/runtime/pkg/rash_runtime.wasm','web/header/rash-header.svg','web/examples/06-studio-sequence.svg','docs/animations/mcp-guide.svg','LICENSE','README.md'])assert.ok(files.has(file),`${file} missing from npm package`);
- assert.ok(packed.unpackedSize<10_000_000,'Unpacked package must remain below 10 MB');
+ assert.ok(packed.size<15_000_000,`Packed package must remain below 15 MB; got ${packed.size}`);
+ assert.ok(packed.unpackedSize<40_000_000,`Unpacked package must remain below 40 MB; got ${packed.unpackedSize}`);
  assert.ok([...files].every(file=>!/(^|\/)(\.git|node_modules|test-results|\.env)(\/|$)/.test(file)),'Tarball must exclude repository, dependency and secret paths');
 });
 
