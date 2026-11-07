@@ -52,7 +52,9 @@ export function animatedSVG(input) {
     else{
       const tag = node.type === 'ellipse' ? 'ellipse' : node.type === 'text' ? 'text' : node.type === 'path' ? 'path' : 'rect';
       const shapeAttrs = nodeAttributes(initial);
-      const shapeAnimations = Object.keys(shapeAttrs).filter(key=>key!=='transform').map(key => animate(samples.map(n => String(nodeAttributes(n)[key])), key)).join('') + (node.type==='path'?animate(samples.map(n=>`${num(n.width/(n.pathWidth||n.width))} ${num(n.height/(n.pathHeight||n.height))}`),'transform','scale'):'');
+      const pathTransforms=samples.map(n=>nodeAttributes(n).transform);
+      const hasPathOffset=node.type==='path'&&samples.some(n=>n.pathOffsetX||n.pathOffsetY);
+      const shapeAnimations = Object.keys(shapeAttrs).filter(key=>key!=='transform').map(key => animate(samples.map(n => String(nodeAttributes(n)[key])), key)).join('') + (node.type==='path'?(hasPathOffset?animate(pathTransforms,'transform'):animate(samples.map(n=>`${num(n.width/(n.pathWidth||n.width))} ${num(n.height/(n.pathHeight||n.height))}`),'transform','scale')):'');
       body = `<${tag}${attrs(shapeAttrs)}>${node.type === 'text' ? textMarkup(node.text) : ''}${shapeAnimations}</${tag}>`;
     }
     const filter=effectFilter(node,'rash-export');
@@ -147,7 +149,8 @@ function animatedSymbolSVG(p){
       }).join(''):faces(initial,0);
     }else{
       const tag=node.type==='ellipse'?'ellipse':node.type==='text'?'text':node.type==='path'?'path':'rect',shapeAttrs=nodeAttributes(initial);
-      const shapeAnimations=Object.keys(shapeAttrs).filter(key=>key!=='transform').map(key=>animate(samples.map(n=>String(nodeAttributes(n)[key])),key)).join('')+(node.type==='path'?animate(samples.map(n=>`${num(n.width/(n.pathWidth||n.width))} ${num(n.height/(n.pathHeight||n.height))}`),'transform','scale'):'');
+      const pathTransforms=samples.map(n=>nodeAttributes(n).transform),hasPathOffset=node.type==='path'&&samples.some(n=>n.pathOffsetX||n.pathOffsetY);
+      const shapeAnimations=Object.keys(shapeAttrs).filter(key=>key!=='transform').map(key=>animate(samples.map(n=>String(nodeAttributes(n)[key])),key)).join('')+(node.type==='path'?(hasPathOffset?animate(pathTransforms,'transform'):animate(samples.map(n=>`${num(n.width/(n.pathWidth||n.width))} ${num(n.height/(n.pathHeight||n.height))}`),'transform','scale')):'');
       body=`<${tag}${attrs(shapeAttrs)}>${node.type==='text'?textMarkup(node.text):''}${shapeAnimations}</${tag}>`;
     }
     const filter=effectFilter(node,prefix);
