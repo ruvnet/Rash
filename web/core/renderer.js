@@ -7,7 +7,11 @@ export function nodeAttributes(n){
  const common={fill:n.fill,stroke:n.stroke,'stroke-width':n.strokeWidth};
  if(n.type==='ellipse')return {...common,cx:n.width/2,cy:n.height/2,rx:n.width/2,ry:n.height/2};
  if(n.type==='text')return {...common,x:0,y:n.fontSize,'font-size':n.fontSize,'font-weight':n.fontWeight||600,'font-family':'Inter, Arial, sans-serif','xml:space':'preserve'};
- if(n.type==='path')return {...common,d:n.d||'',transform:`scale(${num(n.width/(n.pathWidth||n.width))} ${num(n.height/(n.pathHeight||n.height))})`};
+ if(n.type==='path'){
+  const scale=`scale(${num(n.width/(n.pathWidth||n.width))} ${num(n.height/(n.pathHeight||n.height))})`;
+  const offsetX=n.pathOffsetX||0,offsetY=n.pathOffsetY||0;
+  return {...common,d:n.d||'',transform:offsetX||offsetY?`${scale} translate(${num(-offsetX)} ${num(-offsetY)})`:scale};
+ }
  return {...common,x:0,y:0,width:n.width,height:n.height,rx:n.rx||0};
 }
 const tag=n=>n.type==='mesh'||n.type==='symbol'?'g':n.type==='ellipse'?'ellipse':n.type==='text'?'text':n.type==='path'?'path':'rect';

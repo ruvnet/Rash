@@ -171,7 +171,7 @@ export function normalizeNode(n,i=0){
  for(const property of MASK_PROPERTIES)node[property]=boundedProperty(n[property],property,property==='maskWidth'?node.width:property==='maskHeight'?node.height:0);
  if(type==='text'&&node.text.split('\n').length>MAX_TEXT_LINES_PER_NODE)throw new Error(`A text layer supports at most ${MAX_TEXT_LINES_PER_NODE} lines`);
  // Preserve source path geometry so editing W/H also scales actual vector output.
- if(type==='path'){node.pathWidth=finite(n.pathWidth,node.width,1,10000);node.pathHeight=finite(n.pathHeight,node.height,1,10000);}
+ if(type==='path'){node.pathWidth=finite(n.pathWidth,node.width,1,10000);node.pathHeight=finite(n.pathHeight,node.height,1,10000);node.pathOffsetX=finite(n.pathOffsetX,0,-100000,100000);node.pathOffsetY=finite(n.pathOffsetY,0,-100000,100000);}
  if(type==='mesh'){node.primitive=Object.hasOwn(MESH_TRIANGLES,n.primitive)?n.primitive:'box';node.wireframe=n.wireframe===true;}
  if(type==='symbol'){
   if(typeof n.symbolId!=='string'||!/^[-\w]{1,100}$/.test(n.symbolId))throw new Error('A symbol instance requires a valid symbolId');

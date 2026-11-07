@@ -14,6 +14,8 @@ Rash creates editable SVG compositions with vector layers, keyframes, projected 
 
 A ready made example is the fastest starting point. In the [gallery](https://ruvnet.github.io/Rash/examples/), download **Project JSON**, then use **File → Open project** in the studio.
 
+To edit a vector logo, choose **File → Import SVG as grouped layers** to preserve its groups, or **File → Import SVG paths (no groups)** to make each path individually selectable and available for layer effects such as blur and glow. Rash adds either import to the current composition, centered on the stage, without removing existing artwork. Grouped layers can be opened from the Library to edit their paths. Imported paths use their actual bounds, not the full SVG frame. Solid colors and path strokes are supported; convert other shapes to paths first. SVG transforms and effects are not supported. Undo removes the imported artwork as one step.
+
 ## Edit and delete on mobile
 
 1. Tap an object, or select it through **Layers**. A fully masked object remains selectable in Layers.

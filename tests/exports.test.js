@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createProject, addNode, setLayerExposure } from '../web/core/model.js';
 import { exportProject, embedCode, mp4Support } from '../web/export/export.js';
+import { animatedSVG } from '../web/export/svg.js';
 import { GIFEncoder, lzwEncode, quantizeRGBA } from '../web/export/gif.js';
 import { createImagePDF } from '../web/export/pdf.js';
 function decodeLZW(bytes) {
@@ -52,6 +53,13 @@ test('animated SVG exports preserve blank and exposed keyframe holds', async () 
   const p=createProject('orbit');p.duration=6;const node=p.nodes[0];setLayerExposure(p,node.id,1,false);setLayerExposure(p,node.id,4,true);
   const svg=await (await exportProject(p,'svg')).blob.text(),group=svg.match(new RegExp(`<g data-node-id="${node.id}"[^>]*>([\\s\\S]*?)<\\/g>`))?.[0]||'';
   assert.match(group,/display="inline"/);assert.match(group,/attributeName="display"/);assert.match(group,/values="inline;none;none;none;inline;inline;inline"/);
+});
+test('imported path origins keep tight geometry when animated SVG layers resize',()=>{
+ const p=createProject('blank');p.duration=2;const node=addNode(p,'path');
+ Object.assign(node,{d:'M10 20h30v20z',x:10,y:20,width:30,height:20,pathWidth:30,pathHeight:20,pathOffsetX:10,pathOffsetY:20,keyframes:[{frame:0,width:30,height:20},{frame:1,width:60,height:40}]});
+ const svg=animatedSVG(p);
+ assert.match(svg,/transform="scale\(1 1\) translate\(-10 -20\)"/);
+ assert.match(svg,/attributeName="transform" values="scale\(1 1\) translate\(-10 -20\);scale\(2 2\) translate\(-10 -20\);scale\(2 2\) translate\(-10 -20\)"/);
 });
 test('animated SVG and embed exports preserve canonical spatial cubic samples', async () => {
   const p=createProject('blank');p.duration=3;const node=addNode(p);node.x=0;node.y=0;
